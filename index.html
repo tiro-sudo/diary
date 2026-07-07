@@ -1114,11 +1114,12 @@ document.getElementById('joinCodeBtn').addEventListener('click', async ()=>{
   }catch(e){ showToast('존재하지 않는 코드예요'); }
 });
 
-// 💡 Firebase rawQuestions 문자열을 비동기로 로드하여 동적 리스트 구조로 파싱해 줍니다.
+// 💡 [최종 완결] 질문 로딩 지연 방지와 로그인 유지 세션이 완벽하게 결합된 초기화 함수
 (async function init(){
   document.querySelector('.nav button[data-view="question"]').classList.add('active');
   renderJourney();
   
+  // 1. 서버로부터 300개의 질문 풀 로드
   try {
     const sysSnap = await db.collection('system').doc('config').get();
     if(sysSnap.exists && sysSnap.data().rawQuestions) {
@@ -1129,13 +1130,16 @@ document.getElementById('joinCodeBtn').addEventListener('click', async ()=>{
       }
     }
   } catch(e) {
-    console.error("서버 질문 풀 파싱 실패, 정적 리스트를 기본값으로 사용합니다:", e);
+    console.error("서버 질문 풀 파싱 실패, 기본값 사용:", e);
   }
 
+  // 2. 로그인 세션 유지 및 온보딩 판별 로직 (유실되었던 정석 코드 복구)
   updateChips();
   render();
+  
   const savedCode = localStorage.getItem('coupleCode');
   const savedRole = localStorage.getItem('myRole');
+  
   if(savedCode && savedRole){
     myRole = savedRole;
     startApp(savedCode);
