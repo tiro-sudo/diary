@@ -465,12 +465,33 @@ async function saveMyProfile(name, photo){
 /* 실시간 한줄상태 업데이트 함수 */
 async function saveMyStatus(statusText){
   if(!coupleCode || !myRole) return;
+  
+  // 1. 기존에 저장되어 있던 내 프로필 정보(이름, 사진)를 그대로 가져옵니다.
+  const existing = (state.profiles && state.profiles[myRole]) || {};
+  
+  // 2. 이름과 사진은 유지하고, status(기분 상태)만 새로 선택한 값으로 교체합니다.
+  const updatedProfile = {
+    name: existing.name || (myRole === 'rabbit' ? '토끼' : '쿼카'),
+    photo: existing.photo || null,
+    status: statusText
+  };
+  
+  // 3. 서버 반영 전, 로컬 메모리를 즉시 갱신하여 UI 유실을 차단합니다.
+  if (!state.profiles) state.profiles = {};
+  state.profiles[myRole] = updatedProfile;
+  
+  // 4. 상단 프로필 영역을 즉시 다시 그려 화면이 초기화되는 것을 막습니다.
+  renderProfileRow();
+  
+  // 5. Firestore에 안전하게 병합(merge) 저장합니다.
   const firestoreUpdate = {};
-  firestoreUpdate[`profiles.${myRole}.status`] = statusText;
-  try{
-    await db.collection('couples').doc(coupleCode).update(firestoreUpdate);
+  firestoreUpdate[`profiles.${myRole}`] = updatedProfile;
+  
+  try {
+    await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
     showToast(`상태를 변경했어요!`);
   } catch(e) {
+    console.error('상태 변경 실패:', e);
     showToast('상태 변경에 실패했어요.');
   }
 }
