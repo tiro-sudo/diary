@@ -253,6 +253,7 @@ textarea:focus,input:focus{outline:none;border-color:var(--accent);}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-app-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-storage-compat.js"></script>
 <script>
 // 💡 기본 고정 질문 초기화 (서버 연동 실패 시의 예비용)
 const QUESTIONS = [
@@ -310,6 +311,23 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 db.settings({ experimentalAutoDetectLongPolling: true });
+const storage = firebase.storage();
+
+/* 💡 사진: Firestore 문서(1MB 제한) 대신 Firebase Storage에 업로드하고
+   문서에는 다운로드 URL만 저장한다. */
+async function uploadPhoto(dataUrl, path){
+  const blob = await (await fetch(dataUrl)).blob();
+  const ref = storage.ref(path);
+  await ref.put(blob);
+  return await ref.getDownloadURL();
+}
+// photoValue가 새로 고른 사진(dataURL)이면 업로드해서 URL로 바꾸고,
+// 이미 저장된 URL이거나 없으면 그대로 반환한다.
+async function resolvePhotoForUpload(photoValue, path){
+  if(!photoValue) return null;
+  if(photoValue.startsWith('data:')) return await uploadPhoto(photoValue, path);
+  return photoValue;
+}
 
 let state = { diary: [], answers: [], profiles: {} };
 let currentView = 'question';
@@ -433,17 +451,35 @@ function subscribeCouple(code){
   );
 }
 
-// 💡 [수정] 대규모 데이터 유실 방지를 위해 기존 통째 .set() 대신 개별 필드 전송 체계로 마감 보완
-async function saveDiaryState(diaryArray){
+// 💡 [수정] 전체 배열을 통째로 덮어쓰던 방식 대신, Firestore 트랜잭션으로
+// "서버의 최신 값을 읽고 → 그 위에 변경을 적용해서 → 쓰는" 과정을 원자적으로 처리한다.
+// 두 사람이 거의 동시에 저장해도 서버가 충돌을 감지해 자동 재시도하므로 데이터 유실이 없다.
+async function saveDiaryState(mutatorFn){
   if(!coupleCode) return;
-  try{ await db.collection('couples').doc(coupleCode).update({ diary: diaryArray }); }
-  catch(e){ console.error('일기 저장 실패', e); showToast('저장에 실패했어요.'); }
+  const docRef = db.collection('couples').doc(coupleCode);
+  try{
+    await db.runTransaction(async (tx)=>{
+      const snap = await tx.get(docRef);
+      const currentDiary = (snap.exists && snap.data().diary) || [];
+      const newDiary = mutatorFn(currentDiary);
+      tx.update(docRef, { diary: newDiary });
+    });
+  }
+  catch(e){ console.error('일기 저장 실패', e); showToast('저장에 실패했어요.'); throw e; }
 }
 
-async function saveAnswerState(answersArray){
+async function saveAnswerState(mutatorFn){
   if(!coupleCode) return;
-  try{ await db.collection('couples').doc(coupleCode).update({ answers: answersArray }); }
-  catch(e){ console.error('답변 저장 실패', e); showToast('저장에 실패했어요.'); }
+  const docRef = db.collection('couples').doc(coupleCode);
+  try{
+    await db.runTransaction(async (tx)=>{
+      const snap = await tx.get(docRef);
+      const currentAnswers = (snap.exists && snap.data().answers) || [];
+      const newAnswers = mutatorFn(currentAnswers);
+      tx.update(docRef, { answers: newAnswers });
+    });
+  }
+  catch(e){ console.error('답변 저장 실패', e); showToast('저장에 실패했어요.'); throw e; }
 }
 
 /* 1. 내 프로필 저장 함수 (동기화 무결성 확보) */
@@ -466,7 +502,7 @@ async function saveMyProfile(name, photo){
 
   const updatedProfile = {
     name: name,
-    photo: photo || null,
+    photo: photo || existing.photo || null,
     status: existing.status || '기분 없음'
   };
   
@@ -508,17 +544,9 @@ async function saveMyStatus(statusText){
     console.warn('기존 프로필 조회 실패, 로컬 캐시로 대체:', e);
   }
 
-  const profileBtn = document.getElementById('editMyProfileBtn');
-  const currentUiName = profileBtn ? profileBtn.querySelector('span').textContent.trim() : null;
-  const currentUiImg = profileBtn ? profileBtn.querySelector('img') : null;
-  const currentUiPhotoSrc = currentUiImg ? currentUiImg.src : null;
-
-  const finalName = existing.name || currentUiName || (myRole === 'rabbit' ? '토끼' : '쿼카');
-  const finalPhoto = existing.photo || currentUiPhotoSrc || null;
-
   const updatedProfile = {
-    name: finalName,
-    photo: finalPhoto,
+    ...existing,
+    name: existing.name || (myRole === 'rabbit' ? '토끼' : '쿼카'),
     status: statusText
   };
   
@@ -605,9 +633,10 @@ function renderProfileFormStep(code, existing){
     const btn = document.getElementById('pfDoneBtn');
     const name = document.getElementById('pfNameInput').value.trim() || (myRole==='rabbit'?'토끼':'쿼카');
     btn.disabled = true;
-    btn.textContent = '시작하는 중...';
+    btn.textContent = tempProfilePhoto ? '사진 업로드 중...' : '시작하는 중...';
     try {
-      await saveMyProfile(name, tempProfilePhoto);
+      const photoUrl = await resolvePhotoForUpload(tempProfilePhoto, `couples/${code}/profiles/${myRole}.jpg`);
+      await saveMyProfile(name, photoUrl);
       hideOnboarding();
       startApp(code);
     } catch (err) {
@@ -651,14 +680,20 @@ function openProfileEditModal(){
   document.getElementById('editSaveBtn').addEventListener('click', async ()=>{
     const nameInput = document.getElementById('editNameInput');
     const name = nameInput.value.trim() || roleName(myRole);
-    
+    const saveBtn = document.getElementById('editSaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = tempProfilePhoto ? '업로드 중...' : '저장';
+
     try {
-      await saveMyProfile(name, tempProfilePhoto);
+      const photoUrl = await resolvePhotoForUpload(tempProfilePhoto, `couples/${coupleCode}/profiles/${myRole}.jpg`);
+      await saveMyProfile(name, photoUrl);
       hideProfileOverlay();
       showToast('프로필을 저장했어요');
     } catch(err) {
       console.error('프로필 저장 실패:', err);
       showToast('프로필 저장에 실패했습니다.');
+      saveBtn.disabled = false;
+      saveBtn.textContent = '저장';
     }
   });
   
@@ -860,22 +895,29 @@ function renderQuestionView(){
 }
 function bindQuestionView(){
   document.getElementById('saveAnswerBtn').addEventListener('click', async ()=>{
+    const btn = document.getElementById('saveAnswerBtn');
     const ds = todayStr();
     const qIdx = todayQuestionIndex();
     const val = document.getElementById('mineInput').value.trim();
-    let existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
-    if(!existing){
-      existing = {date:ds, questionIndex:qIdx, question:QUESTIONS[qIdx], rabbit:'', quokka:''};
-      state.answers.push(existing);
+    btn.disabled = true;
+
+    try{
+      await saveAnswerState(answers=>{
+        const idx = answers.findIndex(a=>a.date===ds && a.questionIndex===qIdx);
+        if(idx === -1){
+          return [...answers, {date:ds, questionIndex:qIdx, question:QUESTIONS[qIdx], rabbit:'', quokka:'', [myRole]: val}];
+        }
+        const next = answers.slice();
+        next[idx] = { ...next[idx], [myRole]: val };
+        return next;
+      });
+      showToast('오늘의 답변이 저장됐어요');
+      updateChips();
+      updateNavDots();
+      render();
+    }catch(e){
+      btn.disabled = false;
     }
-    existing[myRole] = val;
-    
-    // 💡 [수정] 무분별한 set 대신 전용 answers 제어 업데이트 호출
-    await saveAnswerState(state.answers);
-    showToast('오늘의 답변이 저장됐어요');
-    updateChips();
-    updateNavDots();
-    render();
   });
 }
 
@@ -968,21 +1010,38 @@ function bindDiaryView(){
   if(removePhotoBtn) removePhotoBtn.addEventListener('click', ()=>{ selectedPhoto = null; render(); });
 
   document.getElementById('saveDiaryBtn').addEventListener('click', async ()=>{
+    const btn = document.getElementById('saveDiaryBtn');
     const title = document.getElementById('titleInput').value.trim();
     const content = document.getElementById('contentInput').value.trim();
     if(!content){ showToast('내용을 적어주세요'); return; }
-    state.diary.push({
-      id:'d'+Date.now(), date:todayStr(), mood:selectedMood||MOODS[0].key,
-      title, content, photo:selectedPhoto||null, author:myRole, comments:[], createdAt:Date.now()
-    });
-    selectedMood = null; selectedPhoto = null;
-    
-    // 💡 [수정 및 완결] 괄호 누락 및 누락되어 있던 서버 실시간 전송 함수를 완벽하게 호출 마감 처리
-    await saveDiaryState(state.diary);
-    showToast('오늘의 일기가 저장됐어요');
-    updateChips();
-    updateNavDots();
-    render();
+
+    const entryId = 'd'+Date.now();
+    const localPhoto = selectedPhoto;
+    const mood = selectedMood || MOODS[0].key;
+
+    btn.disabled = true;
+    btn.textContent = localPhoto ? '사진 업로드 중...' : '저장 중...';
+
+    try{
+      // 💡 [수정] base64를 문서에 직접 넣지 않고 Storage에 올린 뒤 URL만 저장
+      const photoUrl = await resolvePhotoForUpload(localPhoto, `couples/${coupleCode}/diary/${entryId}.jpg`);
+      const newEntry = {
+        id: entryId, date: todayStr(), mood,
+        title, content, photo: photoUrl, author: myRole, comments: [], createdAt: Date.now()
+      };
+      await saveDiaryState(diary => [...diary, newEntry]);
+
+      selectedMood = null; selectedPhoto = null;
+      showToast('오늘의 일기가 저장됐어요');
+      updateChips();
+      updateNavDots();
+      render();
+    }catch(e){
+      console.error('일기 저장 실패', e);
+      showToast('저장에 실패했어요.');
+      btn.disabled = false;
+      btn.textContent = '일기 저장';
+    }
   });
 
   document.querySelectorAll('[data-action]').forEach(el=>{
@@ -991,12 +1050,11 @@ function bindDiaryView(){
       if(action==='toggle'){ expandedEntries[id] = !expandedEntries[id]; render(); }
       else if(action==='askDelete'){ confirmDeleteId = id; render(); }
       else if(action==='confirmDelete'){
-        state.diary = state.diary.filter(e=>e.id!==id);
         confirmDeleteId = null;
-        
-        // 💡 [수정] 일기 삭제 시에도 서버 업데이트 연동 적용
-        await saveDiaryState(state.diary);
-        showToast('삭제했어요');
+        try{
+          await saveDiaryState(diary => diary.filter(e=>e.id!==id));
+          showToast('삭제했어요');
+        }catch(e){}
         render();
       }
     });
@@ -1008,13 +1066,13 @@ function bindDiaryView(){
       const input = document.querySelector(`.comment-input[data-entry="${entryId}"]`);
       const text = input.value.trim();
       if(!text) return;
-      const entry = state.diary.find(e=>e.id===entryId);
-      if(!entry) return;
-      entry.comments = entry.comments || [];
-      entry.comments.push({id:'c'+Date.now(), author:myRole, text, createdAt:Date.now()});
-      
-      // 💡 [수정] 댓글 입력 시에도 일기 상태 배열을 서버에 반영
-      await saveDiaryState(state.diary);
+      const newComment = {id:'c'+Date.now(), author:myRole, text, createdAt:Date.now()};
+
+      try{
+        await saveDiaryState(diary => diary.map(e =>
+          e.id===entryId ? { ...e, comments: [...(e.comments||[]), newComment] } : e
+        ));
+      }catch(e){}
       render();
     };
     btn.addEventListener('click', submit);
