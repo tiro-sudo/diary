@@ -4,679 +4,77 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>둘의 하루</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root{
---bg:#FAF7F3;
---card:#FFFFFF;
---ink:#2E2A2E;
---muted:#98929C;
---accent:#E0888F;
---accent-dark:#C96A72;
---accent-soft:#F8E7E8;
---sage:#8CA890;
---gold:#D6A75B;
---border:#ECE6DE;
---shadow:rgba(40,30,35,0.07);
-}
-*{box-sizing:border-box;}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',sans-serif;min-height:100vh;}
-.app{max-width:600px;margin:0 auto;padding:44px 20px 90px;}
-
-.header{text-align:center;}
-.header h1{font-family:'Gowun Batang',serif;font-size:28px;color:var(--ink);margin:0 0 6px;letter-spacing:-0.3px;}
-.header p{margin:0;font-size:13px;color:var(--muted);}
-
-.profile-row{margin-top:16px;display:flex;flex-direction:column;align-items:center;gap:12px;}
-.profile-pair{display:inline-flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:24px;padding:6px 16px 6px 8px;}
-.profile-chip{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);position:relative;}
-.profile-chip.mine{cursor:pointer;}
-.profile-chip.mine:hover{color:var(--accent-dark);}
-.avatar{border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--bg);flex-shrink:0;}
-.avatar svg,.avatar img{width:100%;height:100%;object-fit:cover;display:block;}
-.profile-sep{color:var(--muted);font-size:12px;}
-
-.status-bubbles-row{display:flex;justify-content:center;gap:24px;width:100%;margin-top:4px;}
-.status-container{display:flex;flex-direction:column;align-items:center;position:relative;}
-.status-bubble{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:5px 10px;font-size:11px;color:var(--ink);box-shadow:0 2px 8px var(--shadow);position:relative;max-width:120px;text-align:center;word-break:keep-all;}
-.status-bubble::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);border-width:6px 6px 0;border-style:solid;border-color:var(--card) transparent;display:block;width:0;}
-.status-bubble::before{content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);border-width:7px 7px 0;border-style:solid;border-color:var(--border) transparent;display:block;width:0;z-index:-1;}
-.status-label{font-size:10px;color:var(--muted);margin-top:8px;font-weight:700;}
-
-.status-selector-box{display:flex;align-items:center;gap:6px;font-size:12px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:4px 10px;color:var(--muted);}
-.status-select{border:none;background:none;color:var(--ink);font-family:'Noto Sans KR',sans-serif;font-size:12px;outline:none;cursor:pointer;}
-
-.chip-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px;}
-.chip{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--muted);}
-.chip b{color:var(--accent-dark);font-family:'Gowun Batang',serif;font-size:13px;}
-.chip button{background:none;border:none;color:var(--muted);font-size:11px;text-decoration:underline;cursor:pointer;padding:0;margin-left:2px;}
-.mini-chars{display:flex;align-items:center;}
-.mini-chars span{margin-right:-7px;display:flex;width:18px;height:18px;}
-.mini-chars span:last-child{margin-right:0;}
-
-.journey{margin:26px 6px 6px;position:relative;height:26px;}
-.journey-track{position:absolute;left:0;right:0;top:14px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-.journey-fill{position:absolute;left:0;top:0;height:100%;background:var(--accent);border-radius:2px;}
-.journey-chars{position:absolute;top:-6px;transform:translateX(-50%);display:flex;}
-.journey-chars .char{width:32px;height:32px;animation:bob 2.6s ease-in-out infinite;}
-.journey-chars .char.rabbit{margin-right:-9px;position:relative;z-index:2;}
-.journey-chars .char.quokka{animation-delay:.4s;}
-@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
-.journey-caption{margin:14px 0 0;text-align:center;font-size:11px;color:var(--muted);}
-
-.nav{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-top:28px;}
-.nav button{flex:1;background:none;border:none;padding:12px 4px 13px;font-size:14px;color:var(--muted);cursor:pointer;position:relative;font-family:'Noto Sans KR',sans-serif;}
-.nav button.active{color:var(--ink);font-weight:700;}
-.nav button.active::after{content:'';position:absolute;left:16%;right:16%;bottom:-1px;height:2px;background:var(--accent);border-radius:1px;}
-.nav button .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--gold);margin-left:4px;vertical-align:middle;}
-
-.panel{background:var(--card);border-radius:16px;padding:26px 22px;margin-top:16px;box-shadow:0 2px 16px var(--shadow);min-height:280px;}
-.view{animation:fade .3s ease;}
-@keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
-
-.qcard{position:relative;border:1px solid var(--border);border-radius:14px;padding:26px 22px;margin-bottom:22px;overflow:hidden;}
-.qcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);}
-.qcard .label{font-size:11px;letter-spacing:1px;color:var(--accent-dark);font-weight:700;text-transform:uppercase;margin-bottom:10px;}
-.qcard .qtext{font-family:'Gowun Batang',serif;font-size:20px;line-height:1.5;color:var(--ink);margin:0 0 22px;}
-.answers{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.answer-box{display:flex;flex-direction:column;gap:6px;}
-.answer-box .who{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted);}
-.answer-box .who .avatar{width:18px;height:18px;}
-.answer-box.mine .who{color:var(--accent-dark);}
-.answer-box.partner .who{color:var(--sage);}
-.locked-box{background:var(--bg);border-radius:10px;padding:14px;text-align:center;font-size:12.5px;color:var(--muted);display:flex;align-items:center;justify-content:center;min-height:88px;line-height:1.5;}
-.answer-readonly{background:var(--bg);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.6;color:var(--ink);min-height:68px;white-space:pre-wrap;}
-
-textarea,input[type=text]{font-family:'Noto Sans KR',sans-serif;font-size:14px;line-height:1.6;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--ink);width:100%;}
-textarea{resize:vertical;min-height:88px;}
-textarea:focus,input:focus{outline:none;border-color:var(--accent);}
-
-.btn{font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;padding:10px 20px;border-radius:22px;border:none;cursor:pointer;transition:transform .1s,background .15s;}
-.btn:active{transform:scale(.97);}
-.btn-primary{background:var(--ink);color:#fff;}
-.btn-primary:hover{background:#000;}
-.btn-danger{background:transparent;color:var(--accent-dark);font-size:12px;padding:4px 8px;}
-.qcard-actions{margin-top:18px;text-align:right;}
-
-.past-answers h3,.diary-list h3{font-family:'Gowun Batang',serif;font-size:14px;color:var(--muted);margin:0 0 12px;border-bottom:1px solid var(--border);padding-bottom:8px;font-weight:400;}
-.qa-mini{padding:12px 14px;background:var(--bg);border-radius:10px;margin-bottom:8px;font-size:13px;}
-.qa-mini .qm-date{color:var(--gold);font-weight:700;font-size:11px;margin-bottom:4px;}
-.qa-mini .qm-q{color:var(--ink);font-family:'Gowun Batang',serif;margin-bottom:6px;}
-.qa-mini .qm-row{margin-top:2px;}
-.qa-mini .qm-row b{color:var(--accent-dark);margin-right:4px;}
-.qa-mini .qm-row.partner b{color:var(--sage);}
-.qa-mini .qm-locked{color:var(--muted);font-size:12px;}
-
-.composer{margin-bottom:24px;}
-.moods{display:flex;gap:8px;margin-bottom:14px;}
-.mood-btn{width:38px;height:38px;border-radius:50%;border:1px solid var(--border);background:var(--bg);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s;}
-.mood-btn.selected{border-color:var(--accent);background:var(--accent-soft);}
-.composer input[type=text]{margin-bottom:10px;}
-.composer textarea{min-height:100px;}
-
-.photo-row{margin-top:12px;}
-.photo-add-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:20px;border:1px dashed var(--border);background:var(--bg);color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer;}
-.photo-add-btn:hover{border-color:var(--accent);color:var(--accent-dark);}
-.photo-preview{position:relative;display:inline-block;margin-top:8px;}
-.photo-preview img{max-width:100%;max-height:200px;border-radius:10px;display:block;border:1px solid var(--border);}
-.photo-remove{position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;border:2px solid #fff;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-
-.entry-card{background:var(--bg);border-radius:12px;padding:16px 18px;margin-bottom:12px;}
-.entry-photo{width:100%;max-height:240px;object-fit:cover;border-radius:8px;margin-bottom:10px;display:block;}
-.entry-card .entry-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-.entry-card .entry-head .avatar{width:20px;height:20px;}
-.entry-mood-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
-.entry-date{font-size:11px;color:var(--muted);font-weight:700;}
-.entry-title{font-family:'Gowun Batang',serif;font-size:15px;color:var(--ink);margin:2px 0 6px;}
-.entry-content{font-size:14px;line-height:1.6;color:var(--ink);white-space:pre-wrap;}
-.entry-content.clamped{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
-.entry-more{font-size:12px;color:var(--accent-dark);cursor:pointer;margin-top:4px;display:inline-block;}
-.entry-foot{display:flex;justify-content:flex-end;margin-top:6px;}
-
-.comments{margin-top:12px;border-top:1px solid var(--border);padding-top:10px;}
-.comment-item{display:flex;align-items:flex-start;gap:6px;font-size:12.5px;margin-bottom:7px;}
-.comment-item .avatar{width:18px;height:18px;margin-top:1px;}
-.comment-author{font-weight:700;color:var(--muted);margin-right:4px;}
-.comment-input-row{display:flex;gap:6px;margin-top:8px;}
-.comment-input-row input{flex:1;font-size:12.5px;padding:8px 10px;}
-.comment-send{background:var(--ink);color:#fff;border:none;border-radius:16px;padding:0 14px;font-size:12.5px;cursor:pointer;}
-
-.empty{text-align:center;padding:30px 10px;color:var(--muted);font-size:14px;}
-
-.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px;}
-.stat-card{background:var(--bg);border-radius:12px;padding:14px 16px;text-align:center;}
-.stat-card .num{font-family:'Gowun Batang',serif;font-size:22px;color:var(--ink);}
-.stat-card .lbl{font-size:12px;color:var(--muted);margin-top:2px;}
-.timeline{position:relative;padding-left:16px;}
-.timeline::before{content:'';position:absolute;left:4px;top:6px;bottom:6px;width:1px;background:var(--border);}
-.tl-item{position:relative;margin-bottom:14px;}
-.tl-item::before{content:'';position:absolute;left:-16px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--accent);border:2px solid var(--card);}
-.tl-item.type-answer::before{background:var(--gold);}
-.tl-card{background:var(--bg);border-radius:10px;padding:14px 16px;overflow:hidden;}
-.tl-type{font-size:11px;font-weight:700;color:var(--accent-dark);text-transform:uppercase;letter-spacing:.4px;}
-.tl-item.type-answer .tl-type{color:var(--gold);}
-.tl-date{font-size:11px;color:var(--muted);float:right;}
-.tl-photo{width:50px;height:50px;object-fit:cover;border-radius:8px;float:right;margin-left:10px;}
-.tl-title{font-family:'Gowun Batang',serif;font-size:14px;color:var(--ink);margin-top:4px;}
-.tl-body{font-size:13px;color:var(--ink);margin-top:4px;}
-.tl-answer-row{font-size:12px;margin-top:6px;}
-.tl-answer-row b{margin-right:4px;}
-.tl-answer-row.mine b{color:var(--accent-dark);}
-.tl-answer-row.partner b{color:var(--sage);}
-.tl-comment-count{font-size:11px;color:var(--muted);margin-top:6px;}
-
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 22px;border-radius:24px;font-size:13px;box-shadow:0 6px 18px var(--shadow);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-
-.overlay{position:fixed;inset:0;background:rgba(30,25,28,0.5);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}
-.overlay-card{background:var(--card);border-radius:18px;padding:30px 26px;max-width:360px;width:100%;box-shadow:0 12px 32px var(--shadow);}
-.overlay-card h2{font-family:'Gowun Batang',serif;font-size:19px;color:var(--ink);margin:0 0 8px;text-align:center;}
-.overlay-card>p.sub{font-size:13px;color:var(--muted);text-align:center;margin:0 0 20px;}
-.tabs{display:flex;gap:6px;margin-bottom:16px;background:var(--bg);padding:4px;border-radius:12px;}
-.tabs button{flex:1;padding:8px;border-radius:9px;border:none;background:transparent;font-size:13px;cursor:pointer;color:var(--muted);font-family:'Noto Sans KR',sans-serif;}
-.tabs button.active{background:var(--card);color:var(--ink);font-weight:700;box-shadow:0 1px 4px var(--shadow);}
-.tab-panel{display:none;}
-.tab-panel.active{display:block;}
-.code-display-big{font-family:'Gowun Batang',serif;font-size:26px;letter-spacing:5px;text-align:center;color:var(--accent-dark);background:var(--bg);border-radius:12px;padding:16px;margin-bottom:14px;}
-
-.role-pick{display:flex;gap:12px;margin-bottom:6px;}
-.role-card{flex:1;border:1px solid var(--border);border-radius:12px;padding:16px 10px;text-align:center;cursor:pointer;background:var(--bg);}
-.role-card:hover{border-color:var(--accent);}
-.role-card .avatar{width:44px;height:44px;margin:0 auto;}
-.role-card .rc-name{font-size:13px;font-weight:700;margin-top:8px;color:var(--ink);}
-.role-card .rc-taken{font-size:11px;color:var(--muted);margin-top:2px;}
-
-.profile-form-avatar{width:72px;height:72px;margin:0 auto 14px;cursor:pointer;border:1px solid var(--border);}
-.profile-form-avatar.avatar{background:var(--bg);}
-
-@media(max-width:480px){
-.answers{grid-template-columns:1fr;}
-.panel{padding:20px 16px 24px;}
-}
+  body { margin:0; background:#FAF7F3; font-family:'Noto Sans KR',sans-serif; }
+  .app { max-width:600px; margin:0 auto; padding:20px; }
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000; }
+  .card { background:#fff; padding:30px; border-radius:20px; text-align:center; width:90%; max-width:300px; }
+  .btn { display:block; width:100%; padding:12px; margin-top:10px; background:#2E2A2E; color:#fff; border:none; border-radius:10px; cursor:pointer; }
+  input { width:100%; padding:10px; margin-top:10px; border:1px solid #ccc; border-radius:10px; }
+  #viewRoot { margin-top:20px; }
 </style>
 </head>
 <body>
+
 <div class="app">
-<div class="header">
-<h1>둘의 하루</h1>
-<p>매일 한 장씩, 우리를 기록해요</p>
-<div class="profile-row" id="profileRow"></div>
-<div class="chip-row" id="chipRow"></div>
+  <h1>둘의 하루</h1>
+  <div id="viewRoot">환영합니다. 데이터를 불러오는 중입니다...</div>
 </div>
 
-<div class="journey" id="journeyRoot"></div>
-<div class="journey-caption" id="journeyCaption"></div>
-
-<div class="nav">
-<button data-view="question">오늘의 질문<span class="dot" id="dotQ" style="display:none"></span></button>
-<button data-view="diary">다이어리<span class="dot" id="dotD" style="display:none"></span></button>
-<button data-view="history">우리의 기록</button>
-</div>
-
-<div class="panel"><div id="viewRoot"></div></div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<div class="overlay" id="onboardingOverlay">
-<div class="overlay-card" id="onboardingCard">
-<h2>둘만의 공간 만들기</h2>
-<p class="sub">커플 코드로 서로의 기록을 연결해요</p>
-<div class="tabs">
-<button class="active" data-tab="new" type="button">새로 시작하기</button>
-<button data-tab="join" type="button">코드 입력하기</button>
-</div>
-<div class="tab-panel active" id="panelNew">
-<button class="btn btn-primary" id="genCodeBtn" type="button" style="width:100%;">코드 만들기</button>
-</div>
-<div class="tab-panel" id="panelJoin">
-<input type="text" id="joinCodeInput" placeholder="상대에게 받은 코드 입력" style="text-align:center;text-transform:uppercase;letter-spacing:2px;">
-<button class="btn btn-primary" id="joinCodeBtn" type="button" style="width:100%;margin-top:10px;">참여하기</button>
-</div>
-</div>
-</div>
-
-<div class="overlay" id="profileOverlay">
-<div class="overlay-card" id="profileCard"></div>
+<div class="overlay" id="onboardingOverlay" style="display:none;">
+  <div class="card">
+    <h2>시작하기</h2>
+    <input type="text" id="codeInput" placeholder="커플 코드 입력">
+    <button class="btn" id="startBtn">확인</button>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-app-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-firestore-compat.js"></script>
 <script>
-const MOODS = [
-{key:'happy', emoji:'😊', label:'행복함', color:'#E0888F'},
-{key:'calm', emoji:'😌', label:'평온함', color:'#8CA890'},
-{key:'excited', emoji:'😍', label:'설레임', color:'#D6A75B'},
-{key:'sad', emoji:'😢', label:'우울함', color:'#7C93B0'},
-{key:'angry', emoji:'😤', label:'화남', color:'#B57A6A'},
-{key:'tired', emoji:'💤', label:'피곤함', color:'#98929C'},
-{key:'hungry', emoji:'🍕', label:'배고픔', color:'#D6A75B'},
-{key:'missyou', emoji:'🥰', label:'보고싶음', color:'#E0888F'},
-{key:'none', emoji:'💬', label:'기분 없음', color:'#ECE6DE'}
-];
-
-const QUESTIONS = [
-"처음 만났을 때 서로에게 반했던 순간은 언제였어?",
-"요즘 나 때문에 웃었던 순간이 있었어?",
-"우리가 함께 꼭 가보고 싶은 여행지는 어디야?",
-"우리 사이에서 지키고 싶은 약속이 있다면?"
-];
-
-const RABBIT_SVG = <svg viewBox="0 0 44 44"&gt;&lt;ellipse cx="15" cy="10" rx="5" ry="14" fill="#FFFFFF" stroke="#ECE6DE" stroke-width="1"/&gt;&lt;ellipse cx="15" cy="11" rx="2.3" ry="9" fill="#F3C4C8"/&gt;&lt;ellipse cx="29" cy="10" rx="5" ry="14" fill="#FFFFFF" stroke="#ECE6DE" stroke-width="1"/&gt;&lt;ellipse cx="29" cy="11" rx="2.3" ry="9" fill="#F3C4C8"/&gt;&lt;circle cx="22" cy="27" r="14" fill="#FFFFFF" stroke="#ECE6DE" stroke-width="1"/&gt;&lt;circle cx="17" cy="25" r="1.6" fill="#2E2A2E"/&gt;&lt;circle cx="27" cy="25" r="1.6" fill="#2E2A2E"/&gt;&lt;ellipse cx="22" cy="29" rx="1.8" ry="1.3" fill="#E0888F"/&gt;&lt;path d="M22 30 Q19 33 16 31" stroke="#2E2A2E" stroke-width="1" fill="none" stroke-linecap="round"/&gt;&lt;path d="M22 30 Q25 33 28 31" stroke="#2E2A2E" stroke-width="1" fill="none" stroke-linecap="round"/&gt;&lt;circle cx="12" cy="29" r="2.6" fill="#F3C4C8" opacity="0.8"/&gt;&lt;circle cx="32" cy="29" r="2.6" fill="#F3C4C8" opacity="0.8"/&gt;&lt;/svg>;
-const QUOKKA_SVG = <svg viewBox="0 0 44 44"&gt;&lt;circle cx="10" cy="14" r="5" fill="#D8B888"/&gt;&lt;circle cx="34" cy="14" r="5" fill="#D8B888"/&gt;&lt;circle cx="22" cy="25" r="15" fill="#E0C296"/&gt;&lt;circle cx="16" cy="23" r="1.6" fill="#2E2A2E"/&gt;&lt;circle cx="28" cy="23" r="1.6" fill="#2E2A2E"/&gt;&lt;ellipse cx="22" cy="27" rx="2" ry="1.4" fill="#8A6A44"/&gt;&lt;path d="M15 29 Q22 36 29 29" stroke="#2E2A2E" stroke-width="1.4" fill="none" stroke-linecap="round"/&gt;&lt;circle cx="11" cy="30" r="3" fill="#F3C4C8" opacity="0.7"/&gt;&lt;circle cx="33" cy="30" r="3" fill="#F3C4C8" opacity="0.7"/&gt;&lt;/svg>;
-const ANNIVERSARY = new Date(2023, 3, 26);
-
 const firebaseConfig = {
-apiKey: "AIzaSyC6HRE4epg8WIaSqzqX-8SrinAAdP73GoI",
-authDomain: "my-awesome-couple-diary.firebaseapp.com",
-projectId: "my-awesome-couple-diary",
-storageBucket: "my-awesome-couple-diary.firebasestorage.app",
-messagingSenderId: "321852756524",
-appId: "1:321852756524:web:50448dbc69149b265fb789"
+  apiKey: "AIzaSyC6HRE4epg8WIaSqzqX-8SrinAAdP73GoI",
+  authDomain: "my-awesome-couple-diary.firebaseapp.com",
+  projectId: "my-awesome-couple-diary",
+  storageBucket: "my-awesome-couple-diary.firebasestorage.app",
+  messagingSenderId: "321852756524",
+  appId: "1:321852756524:web:50448dbc69149b265fb789"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-db.settings({ experimentalAutoDetectLongPolling: true });
 
-let state = { diary: [], answers: [], profiles: {} };
-let currentView = 'question';
-let selectedMood = null;
-let selectedPhoto = null;
-let expandedEntries = {};
-let confirmDeleteId = null;
-let coupleCode = null;
 let myRole = null;
-let unsubscribeCouple = null;
-let tempProfilePhoto = null;
+let coupleCode = null;
 
-function formatDate(d){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return ${y}-${m}-${day}; } function displayDate(ds){ const [y,m,d]=ds.split('-'); return ``${y}.${m}.${d}; }
-function dayOfYear(d){ const start=new Date(d.getFullYear(),0,0); return Math.floor((d-start)/86400000); }
-function todayStr(){ return formatDate(new Date()); }
-function todayQuestionIndex(){ return dayOfYear(new Date()) % QUESTIONS.length; }
-function otherRole(role){ return role==='rabbit' ? 'quokka' : 'rabbit'; }
-function roleIcon(role){ return role==='rabbit' ? RABBIT_SVG : QUOKKA_SVG; }
-function roleName(role){
-const p = state.profiles && state.profiles[role];
-if(p && p.name) return p.name;
-return role==='rabbit' ? '토끼' : '쿼카';
-}
-function avatarHtml(role, size){
-const p = (state.profiles && state.profiles[role]) || {};
-const inner = p.photo ? <img src="${p.photo}">: roleIcon(role); return<span class="avatar" style="width:${size}px;height:${size}px;">${inner}&lt;/span>;
-}
-function escapeHtml(str){
-if(!str) return '';
-return str.replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/\n/g,'<br>');
-}
-function showToast(msg){
-const t = document.getElementById('toast');
-if(!t) return;
-t.textContent = msg;
-t.classList.add('show');
-setTimeout(()=>t.classList.remove('show'), 2200);
-}
-function resizeImage(file){
-return new Promise((resolve, reject)=>{
-const reader = new FileReader();
-reader.onload = (e)=>{
-const img = new Image();
-img.onload = ()=>{
-const maxDim = 600;
-let {width, height} = img;
-if(width > height && width > maxDim){ height = Math.round(height*(maxDim/width)); width = maxDim; }
-else if(height > maxDim){ width = Math.round(width*(maxDim/height)); height = maxDim; }
-const canvas = document.createElement('canvas');
-canvas.width = width; canvas.height = height;
-canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-resolve(canvas.toDataURL('image/jpeg', 0.65));
-};
-img.onerror = reject;
-img.src = e.target.result;
-};
-reader.onerror = reject;
-reader.readAsDataURL(file);
-});
-}
-function resizeImageSquare(file){
-return new Promise((resolve, reject)=>{
-const reader = new FileReader();
-reader.onload = (e)=>{
-const img = new Image();
-img.onload = ()=>{
-const size = 160;
-const canvas = document.createElement('canvas');
-canvas.width = size; canvas.height = size;
-const ctx = canvas.getContext('2d');
-const minSide = Math.min(img.width, img.height);
-const sx = (img.width-minSide)/2, sy=(img.height-minSide)/2;
-ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-resolve(canvas.toDataURL('image/jpeg', 0.7));
-};
-img.onerror = reject;
-img.src = e.target.result;
-};
-reader.onerror = reject;
-reader.readAsDataURL(file);
-});
+function showApp(code) {
+  coupleCode = code;
+  document.getElementById('onboardingOverlay').style.display = 'none';
+  document.getElementById('viewRoot').innerHTML = "연결되었습니다! 코드는 " + code + " 입니다.";
+  localStorage.setItem('coupleCode', code);
 }
 
-function genCode(){
-const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-let code = '';
-for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
-return code;
-}
-async function createCoupleDoc(code){
-await db.collection('couples').doc(code).set({ diary: [], answers: [], profiles: {} });
-}
-async function fetchCoupleProfiles(code){
-const snap = await db.collection('couples').doc(code).get();
-if(!snap.exists) throw new Error('코드를 찾을 수 없어요');
-return snap.data().profiles || {};
-}
-
-function subscribeCouple(code){
-if(unsubscribeCouple) unsubscribeCouple();
-unsubscribeCouple = db.collection('couples').doc(code).onSnapshot((snap)=>{
-if(!snap.exists) return;
-const data = snap.data() || {};
-state.diary = data.diary || [];
-state.answers = data.answers || [];
-state.profiles = data.profiles || {};
-updateChips();
-renderProfileRow();
-render();
-});
-}
-
-async function saveDiaryState(diaryArray){
-if(!coupleCode) return;
-await db.collection('couples').doc(coupleCode).update({ diary: diaryArray });
-}
-async function saveAnswerState(answersArray){
-if(!coupleCode) return;
-await db.collection('couples').doc(coupleCode).update({ answers: answersArray });
-}
-
-async function saveMyProfile(name, photo){
-if(!coupleCode || !myRole) return;
-const existing = state.profiles[myRole] || {};
-const updated = { name, photo, status: existing.status || '기분 없음' };
-const updateObj = {};
-updateObj[profiles.${myRole}`] = updated;
-await db.collection('couples').doc(coupleCode).update(updateObj);
-localStorage.setItem('myRole', myRole);
-localStorage.setItem('coupleCode', coupleCode);
-}
-
-async function saveMyStatus(statusLabel){
-if(!coupleCode || !myRole) return;
-const existing = state.profiles[myRole] || {};
-existing.status = statusLabel;
-const updateObj = {};
-updateObj[profiles.${myRole}`] = existing;
-await db.collection('couples').doc(coupleCode).update(updateObj);
-}
-
-function showOnboarding(){ document.getElementById('onboardingOverlay').style.display = 'flex'; }
-function hideOnboarding(){ document.getElementById('onboardingOverlay').style.display = 'none'; }
-function showProfileOverlay(){ document.getElementById('profileOverlay').style.display = 'flex'; }
-function hideProfileOverlay(){ document.getElementById('profileOverlay').style.display = 'none'; }
-
-function startApp(code){
-coupleCode = code;
-subscribeCouple(code);
-}
-
-function renderRolePickStep(code, profiles){
-coupleCode = code;
-state.profiles = profiles;
-const card = document.getElementById('onboardingCard');
-const mk = (role)=>{
-const p = profiles[role];
-const takenLine = p && p.name ? <div class="rc-taken"&gt;${escapeHtml(p.name)}님이 사용 중</div>:<div class="rc-taken">비어있음</div>; const avatar = p && p.photo ?: roleIcon(role); return<div class="role-card" data-role="{avatar}</span><div class="rc-name">{takenLine}</div>; }; card.innerHTML =<h2>당신은 누구인가요?</h2><p class="sub">둘 중 나를 나타낼 캐릭터를 골라주세요</p><div class="role-pick">{mk('quokka')}</div>`;
-card.querySelectorAll('.role-card').forEach(el=>{
-el.addEventListener('click', ()=>{
-myRole = el.dataset.role;
-renderProfileFormStep(code, profiles[myRole]||{});
-});
-});
-}
-
-function renderProfileFormStep(code, existing){
-tempProfilePhoto = existing.photo || null;
-const card = document.getElementById('onboardingCard');
-card.innerHTML = <h2&gt;프로필 설정&lt;/h2&gt;&lt;p class="sub"&gt;이름과 사진을 등록해주세요&lt;/p&gt;&lt;div class="avatar profile-form-avatar" id="pfAvatarBtn"&gt;${tempProfilePhoto?<img src="${tempProfilePhoto}">:roleIcon(myRole)}&lt;/div&gt;&lt;input type="file" id="pfPhotoInput" accept="image/*" style="display:none"&gt;&lt;input type="text" id="pfNameInput" placeholder="이름 또는 애칭" value="${escapeHtml(existing.name||'')}"><button class="btn btn-primary" id="pfDoneBtn" type="button" style="width:100%; margin-top:12px;">시작하기</button>; document.getElementById('pfAvatarBtn').addEventListener('click', ()=&gt;document.getElementById('pfPhotoInput').click()); document.getElementById('pfPhotoInput').addEventListener('change', async (e)=&gt;{ if(e.target.files[0]) { tempProfilePhoto = await resizeImageSquare(e.target.files[0]); document.getElementById('pfAvatarBtn').innerHTML =`;
-}
-});
-document.getElementById('pfDoneBtn').addEventListener('click', async ()=>{
-const name = document.getElementById('pfNameInput').value.trim() || (myRole==='rabbit'?'토끼':'쿼카');
-await saveMyProfile(name, tempProfilePhoto);
-hideOnboarding();
-startApp(code);
-});
-}
-
-function openProfileEditModal(){
-const existing = state.profiles[myRole] || {};
-tempProfilePhoto = existing.photo || null;
-const card = document.getElementById('profileCard');
-card.innerHTML = <h2&gt;내 프로필 수정&lt;/h2&gt;&lt;div class="avatar profile-form-avatar" id="editAvatarBtn"&gt;${tempProfilePhoto?<img src="${tempProfilePhoto}">:roleIcon(myRole)}&lt;/div&gt;&lt;input type="file" id="editPhotoInput" accept="image/*" style="display:none"&gt;&lt;input type="text" id="editNameInput" placeholder="이름 또는 애칭" value="${escapeHtml(existing.name||'')}"><div style="display:flex; gap:8px; margin-top:12px;"><button class="btn" id="editCancelBtn" type="button" style="flex:1; background:var(--bg); color:var(--muted);">취소</button><button class="btn btn-primary" id="editSaveBtn" type="button" style="flex:1;">저장</button></div>; document.getElementById('editAvatarBtn').addEventListener('click', ()=&gt;document.getElementById('editPhotoInput').click()); document.getElementById('editPhotoInput').addEventListener('change', async (e)=&gt;{ if(e.target.files[0]) { tempProfilePhoto = await resizeImageSquare(e.target.files[0]); document.getElementById('editAvatarBtn').innerHTML =`;
-}
-});
-document.getElementById('editCancelBtn').addEventListener('click', hideProfileOverlay);
-document.getElementById('editSaveBtn').addEventListener('click', async ()=>{
-const name = document.getElementById('editNameInput').value.trim() || roleName(myRole);
-await saveMyProfile(name, tempProfilePhoto);
-hideProfileOverlay();
-showToast('프로필을 수정했어요');
-});
-showProfileOverlay();
-}
-
-function updateChips(){
-const root = document.getElementById('chipRow');
-if(!root) return;
-let html = '';
-if(coupleCode) html += <span class="chip"&gt;커플 코드 &lt;b&gt;${coupleCode}</b> <button id="changeCodeBtn" type="button">변경</button></span><span class="chip" style="border: 1px solid var(--accent); background: var(--accent-soft);">🔗 <button id="copyShareLinkBtn" style="color: var(--accent-dark); font-weight: bold; background:none; border:none; padding:0; cursor:pointer;">카톡 공지용 링크 복사</button></span>; let streak = calcStreak(); if(streak&gt;0) html +=<span class="chip">🔥 <b>${streak}일째&lt;/b&gt; 기록 중&lt;/span>;
-html += <span class="chip"&gt;&lt;span class="mini-chars"&gt;&lt;span&gt;${RABBIT_SVG}</span><span>${QUOKKA_SVG}&lt;/span&gt;&lt;/span&gt; 만난 지 &lt;b&gt;D+${calcDday()}</b></span>`;
-root.innerHTML = html;
-
-root.onclick = (e) => {
-const btn = e.target.closest('button');
-if(!btn) return;
-if(btn.id === 'changeCodeBtn') {
-localStorage.removeItem('coupleCode'); localStorage.removeItem('myRole');
-window.location.reload();
-} else if(btn.id === 'copyShareLinkBtn') {
-const shareUrl = ``${window.location.origin}{coupleCode}&role=${myRole};
-navigator.clipboard.writeText(shareUrl).then(() => showToast('링크가 복사되었습니다! 카톡방에 공지해 두세요 📌'));
-}
-};
-}
-
-function renderProfileRow(){
-const root = document.getElementById('profileRow');
-if(!root || !myRole) return;
-const other = otherRole(myRole);
-const myStatus = state.profiles[myRole]?.status || '기분 없음';
-const otherStatus = state.profiles[other]?.status || '기분 없음';
-const options = MOODS.map(m => <option value="${m.label}" {m.emoji} ${m.label}&lt;/option>).join('');
-
-root.innerHTML = <div style="display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;"&gt;&lt;div class="status-bubbles-row"&gt;&lt;div class="status-container"&gt;&lt;div class="status-bubble"&gt;${escapeHtml(myStatus)}</div><div class="status-label">{escapeHtml(otherStatus)}</div><div class="status-label">{avatarHtml(myRole,26)}<span>{avatarHtml(other,26)}<span>{options}</select></div></div></div>`;
-document.getElementById('editMyProfileBtn').addEventListener('click', openProfileEditModal);
-document.getElementById('myStatusSelect').addEventListener('change', (e)=>saveMyStatus(e.target.value));
-}
-
-function calcStreak(){
-let streak=0, d=new Date();
-while(true){
-const ds=formatDate(d);
-if(state.diary.some(e=>e.date===ds) || state.answers.some(a=>a.date===ds)) { streak++; d.setDate(d.getDate()-1); } else break;
-}
-return streak;
-}
-function calcDday(){ return Math.floor((new Date() - ANNIVERSARY)/86400000); }
-
-function renderJourney(){
-const now = new Date(), start = new Date(now.getFullYear(), 0, 1), end = new Date(now.getFullYear()+1, 0, 1);
-const pct = Math.min(97, Math.max(3, ((now - start)/(end - start))*100));
-const target = document.getElementById('journeyRoot'), cap = document.getElementById('journeyCaption');
-if(!target || !cap) return;
-target.innerHTML = <div class="journey-track"&gt;&lt;div class="journey-fill" style="width:${pct}%"></div></div><div class="journey-chars" style="left:${pct}%"&gt;&lt;span class="char rabbit"&gt;${RABBIT_SVG}</span><span class="char quokka">${QUOKKA_SVG}&lt;/span&gt;&lt;/div>;
-cap.textContent = ${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 · 함께 걷는 ${Math.floor((now-start)/86400000)+1}일째;
-}
-
-function updateNavDots(){
-const ds = todayStr(), qIdx = todayQuestionIndex();
-const ansToday = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
-const dotQ = document.getElementById('dotQ'), dotD = document.getElementById('dotD');
-if(dotQ) dotQ.style.display = (ansToday && ansToday[myRole]) ? 'none' : 'inline-block';
-if(dotD) dotD.style.display = state.diary.some(e=>e.date===ds) ? 'none' : 'inline-block';
-}
-
-function renderQuestionView(){
-const ds = todayStr(), qIdx = todayQuestionIndex(), other = otherRole(myRole);
-const qText = QUESTIONS[qIdx];
-const existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx) || { rabbit:'', quokka:'' };
-const myAns = existing[myRole] || '', otherAns = existing[other] || '';
-
-let partnerSection = !myAns.trim() ? <div class="locked-box"&gt;🔒 답변을 남기면&lt;br&gt;${escapeHtml(roleName(other))}의 답을 볼 수 있어요</div>: (otherAns.trim() ?<div class="answer-readonly">${escapeHtml(otherAns)}&lt;/div> : <div class="locked-box"&gt;⏳ ${escapeHtml(roleName(other))}가 아직 답변하지 않았어요</div>`);
-
-const past = state.answers.filter(a=>a.date!==ds).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
-let pastHtml = past.length ? <div class="past-answers"&gt;&lt;h3&gt;지난 질문들&lt;/h3> + past.map(a=>{
-if(!(a[myRole]||'').trim()) return <div class="qa-mini"&gt;&lt;div class="qm-date"&gt;${displayDate(a.date)}</div><div class="qm-q">{displayDate(a.date)}</div><div class="qm-q">{escapeHtml(roleName(myRole))}</b>{escapeHtml(roleName(other))}</b>${a[other]?escapeHtml(a[other]):'미작성'}&lt;/div&gt;&lt;/div>;
-}).join('') + </div> : '';
-
-return <div class="view"&gt;&lt;div class="qcard"&gt;&lt;div class="label"&gt;오늘의 질문 ·${displayDate(ds)}</div><p class="qtext">{avatarHtml(myRole,18)} {escapeHtml(myAns)}</textarea></div><div class="answer-box partner"><span class="who">{escapeHtml(roleName(other))}</span>{pastHtml}</div>`;
-}
-
-function bindQuestionView(){
-const btn = document.getElementById('saveAnswerBtn'); if(!btn) return;
-btn.onclick = async () => {
-const ds = todayStr(), qIdx = todayQuestionIndex(), val = document.getElementById('mineInput').value.trim();
-let existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
-if(!existing) { existing = { date:ds, questionIndex:qIdx, question:QUESTIONS[qIdx], rabbit:'', quokka:'' }; state.answers.push(existing); }
-existing[myRole] = val;
-await saveAnswerState(state.answers);
-showToast('답변이 저장되었습니다'); render();
-};
-}
-
-function renderDiaryView(){
-const sorted = [...state.diary].sort((a,b)=>b.id.localeCompare(a.id));
-let listHtml = sorted.length===0 ? <div class="empty"&gt;아직 기록이 없어요.&lt;/div> : <div class="diary-list"&gt;&lt;h3&gt;우리의 기록&lt;/h3> + sorted.map(e=>{
-const mood = MOODS.find(m=>m.key===e.mood) || MOODS[0];
-const items = (e.comments || []).map(c=><div class="comment-item"&gt;${avatarHtml(c.author,18)}<span><span class="comment-author">${escapeHtml(roleName(c.author))}&lt;/span&gt;${escapeHtml(c.text)}</span></div>).join(''); return<div class="entry-card">${e.photo ?: ''}&lt;div class="entry-head"&gt;${avatarHtml(e.author,20)}<span class="entry-mood-dot" style="background:{escapeHtml(roleName(e.author))} · {mood.emoji} {e.title ? <div class="entry-title"&gt;${escapeHtml(e.title)}</div>: ''}&lt;div class="entry-content${expandedEntries[e.id]?'':'clamped'}">{e.content.length>80 ? <span class="entry-more" data-id="${e.id}" data-action="toggle">${expandedEntries[e.id]?'접기':'더보기'}&lt;/span> : ''}<div class="entry-foot">latex
-{confirmDeleteId===e.id ? `<button class="btn btn-danger" data-id="
-
-{e.id}" data-action="confirmDelete">정말 삭제할까요?</button>: (e.author===myRole ?<button class="btn btn-danger" data-id="latex
-{e.id}" data-action="askDelete"&gt;삭제&lt;/button>` : '')}&lt;/div&gt;&lt;div class="comments"&gt;
-
-{items}<div class="comment-input-row"><input type="text" class="comment-input" data-entry="{e.id}">등록</button></div></div></div>; }).join('') +`;
-
-return <div class="view"&gt;&lt;div class="composer"&gt;&lt;div class="moods" id="moodPicker"&gt;${MOODS.filter(m=>m.key!=='none').map(m=><button class="mood-btn${selectedMood===m.key?'selected':''}" data-mood="{m.emoji}</button>).join('')}&lt;/div&gt;&lt;input type="text" id="titleInput" placeholder="제목 (선택)"&gt;&lt;textarea id="contentInput" placeholder="오늘 하루는 어땠나요?"&gt;&lt;/textarea&gt;&lt;div class="photo-row"&gt;&lt;input type="file" id="photoInput" accept="image/*" style="display:none"&gt;${selectedPhoto ? <div class="photo-preview"&gt;&lt;img src="${selectedPhoto}"><button class="photo-remove" id="removePhotoBtn">✕</button></div>:<button class="photo-add-btn" id="addPhotoBtn">📷 사진 추가</button>}&lt;/div&gt;&lt;div style="margin-top:12px; text-align:right;"&gt;&lt;button class="btn btn-primary" id="saveDiaryBtn"&gt;저장하기&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;${listHtml}</div>`;
-}
-
-function bindDiaryView(){
-const picker = document.getElementById('moodPicker'); if(!picker) return;
-picker.onclick = (e) => { const b = e.target.closest('.mood-btn'); if(b) { selectedMood = b.dataset.mood; render(); } };
-const addBtn = document.getElementById('addPhotoBtn'); if(addBtn) addBtn.onclick = () => document.getElementById('photoInput').click();
-const pInput = document.getElementById('photoInput'); if(pInput) pInput.onchange = async (e) => { if(e.target.files[0]) { selectedPhoto = await resizeImage(e.target.files[0]); render(); } };
-const rBtn = document.getElementById('removePhotoBtn'); if(rBtn) rBtn.onclick = () => { selectedPhoto = null; render(); };
-
-document.getElementById('saveDiaryBtn').onclick = async () => {
-const title = document.getElementById('titleInput').value.trim(), content = document.getElementById('contentInput').value.trim();
-if(!content) return showToast('내용을 입력해 주세요');
-state.diary.push({ id:'d'+Date.now(), date:todayStr(), mood:selectedMood||MOODS[0].key, title, content, photo:selectedPhoto, author:myRole, comments:[] });
-selectedMood = null; selectedPhoto = null;
-await saveDiaryState(state.diary); showToast('기록을 저장했습니다'); render();
+document.getElementById('startBtn').onclick = async () => {
+  const code = document.getElementById('codeInput').value.trim().toUpperCase();
+  if(!code) return alert('코드를 입력하세요');
+  
+  const doc = await db.collection('couples').doc(code).get();
+  if(doc.exists) {
+    myRole = 'rabbit'; // 테스트용 고정
+    showApp(code);
+  } else {
+    alert('없는 코드입니다');
+  }
 };
 
-document.querySelectorAll('[data-action]').forEach(el=>{
-el.onclick = async () => {
-const id = el.dataset.id, action = el.dataset.action;
-if(action==='toggle') { expandedEntries[id] = !expandedEntries[id]; render(); }
-else if(action==='askDelete') { confirmDeleteId = id; render(); }
-else if(action==='confirmDelete') { state.diary = state.diary.filter(e=>e.id!==id); confirmDeleteId = null; await saveDiaryState(state.diary); render(); }
-};
-});
-
-document.querySelectorAll('.comment-send').forEach(btn=>{
-btn.onclick = async () => {
-const eId = btn.dataset.entry, txt = document.querySelector(.comment-input[data-entry="${eId}"]`).value.trim();
-if(!txt) return;
-const entry = state.diary.find(e=>e.id===eId);
-if(entry) { entry.comments = entry.comments || []; entry.comments.push({ id:'c'+Date.now(), author:myRole, text:txt }); await saveDiaryState(state.diary); render(); }
-};
-});
-}
-
-function renderHistoryView(){
-const items = [...state.diary.map(e=>({type:'diary', date:e.date, sortKey:e.id, data:e})), ...state.answers.filter(a=>a.rabbit||a.quokka).map(a=>({type:'answer', date:a.date, sortKey:a.date, data:a}))].sort((a,b)=>b.sortKey.localeCompare(a.sortKey));
-const other = otherRole(myRole);
-let listHtml = items.length===0 ? <div class="empty"&gt;기록이 없습니다.&lt;/div> : <div class="timeline"> + items.map(it=>{
-if(it.type==='diary'){
-const mood = MOODS.find(m=>m.key===it.data.mood) || MOODS[0];
-return <div class="tl-item type-diary"&gt;&lt;div class="tl-card"&gt;${it.data.photo ? <img class="tl-photo" src="${it.data.photo}">: ''}&lt;span class="tl-date"&gt;${displayDate(it.date)}</span><div class="tl-type">${mood.emoji} ${escapeHtml(roleName(it.data.author))}의 기록</div>${it.data.title ?<div class="tl-title">latex
-{escapeHtml(it.data.title)}&lt;/div>` : ''}&lt;div class="tl-body"&gt;
-
-{escapeHtml(it.data.content.slice(0,60))}latex
-{it.data.content.length&gt;60?'…':''}&lt;/div&gt;&lt;/div&gt;&lt;/div>`; } if(!(it.data[myRole]||'').trim()) return `<div class="tl-item type-answer"&gt;&lt;div class="tl-card"&gt;&lt;span class="tl-date"&gt;
-
-{displayDate(it.date)}</span><div class="tl-type">오늘의 질문</div><div class="tl-title">{displayDate(it.date)}</span><div class="tl-type">오늘의 질문</div><div class="tl-title">{escapeHtml(roleName(myRole))}</b>{escapeHtml(roleName(other))}</b>${it.data[other]?escapeHtml(it.data[other]):'미작성'}&lt;/div&gt;&lt;/div&gt;&lt;/div>;
-}).join('') + </div>;
-
-return <div class="view"&gt;&lt;div class="stats-row"&gt;&lt;div class="stat-card"&gt;&lt;div class="num"&gt;${state.diary.length}</div><div class="lbl">다이어리</div></div><div class="stat-card"><div class="num">{listHtml}</div>`;
-}
-
-function render(){
-const root = document.getElementById('viewRoot'); if(!root) return;
-if(currentView==='question') { root.innerHTML = renderQuestionView(); bindQuestionView(); }
-else if(currentView==='diary') { root.innerHTML = renderDiaryView(); bindDiaryView(); }
-else { root.innerHTML = renderHistoryView(); }
-updateNavDots();
-}
-
-document.querySelectorAll('.nav button').forEach(b=>b.onclick = () => switchView(b.dataset.view));
-document.querySelectorAll('.tabs button').forEach(b=>{
-b.onclick = () => {
-document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
-document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-document.getElementById(b.dataset.tab==='new' ? 'panelNew' : 'panelJoin').classList.add('active');
-};
-});
-
-document.getElementById('genCodeBtn').onclick = async () => {
-const code = genCode();
-await createCoupleDoc(code);
-document.getElementById('panelNew').innerHTML = <div class="code-display-big"&gt;${code}&lt;/div&gt;&lt;p style="font-size:12px; color:var(--muted); text-align:center;"&gt;상대방에게 이 코드를 공유해 주세요&lt;/p&gt;&lt;button class="btn btn-primary" id="startNewBtn" style="width:100%;"&gt;다음&lt;/button>;
-document.getElementById('startNewBtn').onclick = () => renderRolePickStep(code, {});
-};
-
-document.getElementById('joinCodeBtn').onclick = async () => {
-const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
-if(code.length<4) return showToast('코드를 확인해 주세요');
-try { const profiles = await fetchCoupleProfiles(code); renderRolePickStep(code, profiles); } catch(e) { showToast('없는 코드입니다'); }
-};
-
-(function init(){
-document.querySelector('.nav button[data-view="question"]').classList.add('active');
-renderJourney();
-
-const urlParams = new URLSearchParams(window.location.search);
-const paramCode = urlParams.get('code'), paramRole = urlParams.get('role');
-const savedCode = paramCode || localStorage.getItem('coupleCode'), savedRole = paramRole || localStorage.getItem('myRole');
-
-if(savedCode && savedRole){
-myRole = savedRole; startApp(savedCode);
-} else {
-showOnboarding();
-}
+(function init() {
+  const savedCode = localStorage.getItem('coupleCode');
+  if(savedCode) {
+    myRole = 'rabbit';
+    showApp(savedCode);
+  } else {
+    document.getElementById('onboardingOverlay').style.display = 'flex';
+  }
 })();
 </script>
 </body>
