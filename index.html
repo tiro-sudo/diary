@@ -436,7 +436,7 @@ async function saveState(){
 async function saveMyProfile(name, photo){
   if (!coupleCode || !myRole) return;
   
-  // 기존 상태값 유지하면서 업데이트
+  // 1. 기존 기분 상태 등 누락 방지를 위해 최신 프로필 객체 생성
   const existing = (state.profiles && state.profiles[myRole]) || {};
   const updatedProfile = {
     name: name,
@@ -444,18 +444,22 @@ async function saveMyProfile(name, photo){
     status: existing.status || '기분 없음'
   };
   
-  // 로컬 state 반영
+  // 2. [핵심] 깃허브 배포 지연을 우회하기 위해 로컬 메모리(state)를 즉시 강제 갱신
+  if (!state.profiles) state.profiles = {};
   state.profiles[myRole] = updatedProfile;
   
-  // Firestore 경로 지정을 위한 객체 생성
+  // 3. 상단 프로필 화면 즉시 재렌더링 트리거 (네트워크 대기 해소)
+  renderProfileRow();
+  render(); // 전체 화면 새로고침 효과
+  
+  // 4. Firestore 서동 동기화 진행
   const firestoreUpdate = {};
   firestoreUpdate[`profiles.${myRole}`] = updatedProfile;
   
-  // merge: true로 다른 상대방 프로필을 건드리지 않고 내 영역만 덮어씁니다.
   await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
   
-  // 저장 후 즉시 상단 프로필 영역 갱신
-  renderProfileRow();
+  // 5. 로컬 스토리지에 이름 백업하여 브라우저 로드 신뢰성 확보
+  localStorage.setItem('myRole', myRole);
 }
 
 /* 실시간 한줄상태 업데이트 함수 */
