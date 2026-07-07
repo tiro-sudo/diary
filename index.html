@@ -121,11 +121,12 @@ textarea:focus,input:focus{outline:none;border-color:var(--accent);}
 .photo-row{margin-top:12px;}
 .photo-add-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:20px;border:1px dashed var(--border);background:var(--bg);color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer;}
 .photo-add-btn:hover{border-color:var(--accent);color:var(--accent-dark);}
-.photo-preview img{max-width:100%;max-height:200px;object-fit:contain;border-radius:10px;display:block;border:1px solid var(--border);}
+.photo-preview{position:relative;display:inline-block;margin-top:8px;}
+.photo-preview img{max-width:100%;max-height:200px;border-radius:10px;display:block;border:1px solid var(--border);}
 .photo-remove{position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;border:2px solid #fff;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 
 .entry-card{background:var(--bg);border-radius:12px;padding:16px 18px;margin-bottom:12px;}
-.entry-photo{width:100%;max-height:240px;object-fit:contain;border-radius:8px;margin-bottom:10px;display:block;}
+.entry-photo{width:100%;max-height:240px;object-fit:cover;border-radius:8px;margin-bottom:10px;display:block;}
 .entry-card .entry-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
 .entry-card .entry-head .avatar{width:20px;height:20px;}
 .entry-mood-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
@@ -290,17 +291,12 @@ let confirmDeleteId = null;
 let coupleCode = null;
 let myRole = null;
 let unsubscribeCouple = null;
-let unsubscribeDiary = null;
 let tempProfilePhoto = null;
-let lastLocalWriteTime = 0;
 
 function formatDate(d){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return ${y}-${m}-${day}; } function displayDate(ds){ const [y,m,d]=ds.split('-'); return ``${y}.${m}.${d}; }
 function dayOfYear(d){ const start=new Date(d.getFullYear(),0,0); return Math.floor((d-start)/86400000); }
 function todayStr(){ return formatDate(new Date()); }
-function todayQuestionIndex(){
-const totalQuestions = (Array.isArray(QUESTIONS) && QUESTIONS.length > 0) ? QUESTIONS.length : 4;
-return dayOfYear(new Date()) % totalQuestions;
-}
+function todayQuestionIndex(){ return dayOfYear(new Date()) % QUESTIONS.length; }
 function otherRole(role){ return role==='rabbit' ? 'quokka' : 'rabbit'; }
 function roleIcon(role){ return role==='rabbit' ? RABBIT_SVG : QUOKKA_SVG; }
 function roleName(role){
@@ -310,14 +306,12 @@ return role==='rabbit' ? '토끼' : '쿼카';
 }
 function avatarHtml(role, size){
 const p = (state.profiles && state.profiles[role]) || {};
-const inner = p.photo ? <img src="${escapeHtml(p.photo)}">: roleIcon(role); return<span class="avatar" style="width:${size}px;height:${size}px;">${inner}&lt;/span>;
+const inner = p.photo ? <img src="${p.photo}">: roleIcon(role); return<span class="avatar" style="width:${size}px;height:${size}px;">${inner}&lt;/span>;
 }
-
 function escapeHtml(str){
 if(!str) return '';
-return str.replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"').replace(/'/g,''').replace(/\n/g,'<br>');
+return str.replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/\n/g,'<br>');
 }
-
 function showToast(msg){
 const t = document.getElementById('toast');
 if(!t) return;
@@ -331,14 +325,14 @@ const reader = new FileReader();
 reader.onload = (e)=>{
 const img = new Image();
 img.onload = ()=>{
-const maxDim = 1000;
+const maxDim = 600;
 let {width, height} = img;
 if(width > height && width > maxDim){ height = Math.round(height*(maxDim/width)); width = maxDim; }
 else if(height > maxDim){ width = Math.round(width*(maxDim/height)); height = maxDim; }
 const canvas = document.createElement('canvas');
 canvas.width = width; canvas.height = height;
 canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-resolve(canvas.toDataURL('image/jpeg', 0.72));
+resolve(canvas.toDataURL('image/jpeg', 0.65));
 };
 img.onerror = reject;
 img.src = e.target.result;
@@ -353,14 +347,14 @@ const reader = new FileReader();
 reader.onload = (e)=>{
 const img = new Image();
 img.onload = ()=>{
-const size = 240;
+const size = 160;
 const canvas = document.createElement('canvas');
 canvas.width = size; canvas.height = size;
 const ctx = canvas.getContext('2d');
 const minSide = Math.min(img.width, img.height);
 const sx = (img.width-minSide)/2, sy=(img.height-minSide)/2;
 ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-resolve(canvas.toDataURL('image/jpeg', 0.8));
+resolve(canvas.toDataURL('image/jpeg', 0.7));
 };
 img.onerror = reject;
 img.src = e.target.result;
@@ -370,147 +364,62 @@ reader.readAsDataURL(file);
 });
 }
 
+function genCode(){
+const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+let code = '';
+for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+return code;
+}
 async function createCoupleDoc(code){
-const docRef = db.collection('couples').doc(code);
-await db.runTransaction(async (transaction) => {
-const sfDoc = await transaction.get(docRef);
-if (sfDoc.exists) {
-throw new Error("중복된 코드가 존재합니다. 다시 시도하세요.");
+await db.collection('couples').doc(code).set({ diary: [], answers: [], profiles: {} });
 }
-transaction.set(docRef, { answers: [], profiles: {} });
-});
-}
-
 async function fetchCoupleProfiles(code){
 const snap = await db.collection('couples').doc(code).get();
 if(!snap.exists) throw new Error('코드를 찾을 수 없어요');
-const data = snap.data() || {};
-return data.profiles || {};
+return snap.data().profiles || {};
 }
 
 function subscribeCouple(code){
-if(unsubscribeCouple) { unsubscribeCouple(); unsubscribeCouple = null; }
-if(unsubscribeDiary) { unsubscribeDiary(); unsubscribeDiary = null; }
-
-unsubscribeCouple = db.collection('couples').doc(code).onSnapshot(
-(snap)=>{
-if (snap.metadata.hasPendingWrites || Date.now() - lastLocalWriteTime < 1000) return;
+if(unsubscribeCouple) unsubscribeCouple();
+unsubscribeCouple = db.collection('couples').doc(code).onSnapshot((snap)=>{
+if(!snap.exists) return;
 const data = snap.data() || {};
+state.diary = data.diary || [];
 state.answers = data.answers || [];
-const serverProfiles = data.profiles || {};
-if(myRole && state.profiles[myRole] && state.profiles[myRole].name) {
-serverProfiles[myRole] = Object.assign({}, serverProfiles[myRole], state.profiles[myRole]);
-}
-state.profiles = serverProfiles;
+state.profiles = data.profiles || {};
 updateChips();
 renderProfileRow();
 render();
-},
-(err)=>{ console.error('실시간 동기화 오류', err); }
-);
-
-unsubscribeDiary = db.collection('couples').doc(code).collection('diaries').orderBy('serverCreatedAt', 'desc').onSnapshot(
-(qSnap) => {
-const diaryArray = [];
-qSnap.forEach(doc => { diaryArray.push(doc.data()); });
-state.diary = diaryArray;
-render();
-},
-(err) => { console.error('다이어리 동기화 오류', err); }
-);
-}
-
-async function saveDiaryState(diaryObj){
-if(!coupleCode || !diaryObj.id) return;
-diaryObj.serverCreatedAt = firebase.firestore.FieldValue.serverTimestamp();
-await db.collection('couples').doc(coupleCode).collection('diaries').doc(diaryObj.id).set(diaryObj);
-}
-
-async function deleteDiaryState(diaryId){
-if(!coupleCode || !diaryId) return;
-const docRef = db.collection('couples').doc(coupleCode).collection('diaries').doc(diaryId);
-try {
-await db.runTransaction(async (transaction) => {
-const docSnap = await transaction.get(docRef);
-if (!docSnap.exists) return;
-if (docSnap.data().author !== myRole) {
-throw new Error("삭제 권한이 없습니다.");
-}
-transaction.delete(docRef);
 });
-} catch(e) {
-showToast(e.message || '삭제에 실패했습니다.');
-}
 }
 
-async function saveAnswerState(newAnswerObj){
+async function saveDiaryState(diaryArray){
 if(!coupleCode) return;
-lastLocalWriteTime = Date.now();
-const docRef = db.collection('couples').doc(coupleCode);
-
-try {
-await db.runTransaction(async (transaction) => {
-const docSnap = await transaction.get(docRef);
-const currentAnswers = docSnap.data().answers || [];
-const matchIdx = currentAnswers.findIndex(a => a.date === newAnswerObj.date && a.questionIndex === newAnswerObj.questionIndex);
-
-if (matchIdx > -1) {
-currentAnswers[matchIdx][myRole] = newAnswerObj[myRole];
-} else {
-currentAnswers.push(newAnswerObj);
+await db.collection('couples').doc(coupleCode).update({ diary: diaryArray });
 }
-transaction.update(docRef, { answers: currentAnswers });
-});
-} catch(e) {
-console.error('답변 저장 트랜잭션 실패:', e);
-}
+async function saveAnswerState(answersArray){
+if(!coupleCode) return;
+await db.collection('couples').doc(coupleCode).update({ answers: answersArray });
 }
 
 async function saveMyProfile(name, photo){
-if (!coupleCode || !myRole) return;
-const existing = (state.profiles && state.profiles[myRole]) || {};
-const updatedProfile = { name: name, photo: photo || null, status: existing.status || '기분 없음' };
-
-if (!state.profiles) state.profiles = {};
-state.profiles[myRole] = updatedProfile;
-renderProfileRow();
-render();
-
-const firestoreUpdate = {};
-firestoreUpdate[profiles.${myRole}`] = updatedProfile;
-lastLocalWriteTime = Date.now();
-try {
-await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
+if(!coupleCode || !myRole) return;
+const existing = state.profiles[myRole] || {};
+const updated = { name, photo, status: existing.status || '기분 없음' };
+const updateObj = {};
+updateObj[profiles.${myRole}`] = updated;
+await db.collection('couples').doc(coupleCode).update(updateObj);
 localStorage.setItem('myRole', myRole);
 localStorage.setItem('coupleCode', coupleCode);
-updateChips();
-} catch(err) {
-showToast('프로필 저장에 실패했습니다.');
-}
 }
 
 async function saveMyStatus(statusLabel){
 if(!coupleCode || !myRole) return;
-const targetMood = MOODS.find(m => m.label === statusLabel) || MOODS[MOODS.length-1];
-const profileBtn = document.getElementById('editMyProfileBtn');
-const currentUiName = profileBtn ? profileBtn.querySelector('span').textContent.trim() : null;
-const currentUiImg = profileBtn ? profileBtn.querySelector('img') : null;
-const currentUiPhotoSrc = currentUiImg ? currentUiImg.src : null;
-
-const existing = (state.profiles && state.profiles[myRole]) || {};
-const finalName = existing.name || currentUiName || (myRole === 'rabbit' ? '토끼' : '쿼카');
-const finalPhoto = existing.photo || currentUiPhotoSrc || null;
-
-const updatedProfile = { name: finalName, photo: finalPhoto, status: targetMood.label };
-if (!state.profiles) state.profiles = {};
-state.profiles[myRole] = updatedProfile;
-renderProfileRow();
-
-const firestoreUpdate = {};
-firestoreUpdate[profiles.${myRole}] = updatedProfile; lastLocalWriteTime = Date.now(); try { await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true }); showToast(상태를 변경했어요!`);
-} catch(e) {
-console.error(e);
-}
+const existing = state.profiles[myRole] || {};
+existing.status = statusLabel;
+const updateObj = {};
+updateObj[profiles.${myRole}`] = existing;
+await db.collection('couples').doc(coupleCode).update(updateObj);
 }
 
 function showOnboarding(){ document.getElementById('onboardingOverlay').style.display = 'flex'; }
@@ -520,16 +429,12 @@ function hideProfileOverlay(){ document.getElementById('profileOverlay').style.d
 
 function startApp(code){
 coupleCode = code;
-localStorage.setItem('coupleCode', code);
-localStorage.setItem('myRole', myRole);
 subscribeCouple(code);
-updateChips();
-renderProfileRow();
 }
 
 function renderRolePickStep(code, profiles){
 coupleCode = code;
-state.profiles = profiles || {};
+state.profiles = profiles;
 const card = document.getElementById('onboardingCard');
 const mk = (role)=>{
 const p = profiles[role];
@@ -545,293 +450,230 @@ renderProfileFormStep(code, profiles[myRole]||{});
 function renderProfileFormStep(code, existing){
 tempProfilePhoto = existing.photo || null;
 const card = document.getElementById('onboardingCard');
-card.innerHTML = <h2&gt;프로필 설정&lt;/h2&gt;&lt;p class="sub"&gt;이름과 사진을 등록해주세요&lt;/p&gt;&lt;div class="avatar profile-form-avatar" id="pfAvatarBtn"&gt;${tempProfilePhoto?<img src="${escapeHtml(tempProfilePhoto)}">:roleIcon(myRole)}&lt;/div&gt;&lt;input type="file" id="pfPhotoInput" accept="image/*" style="display:none"&gt;&lt;input type="text" id="pfNameInput" placeholder="이름 또는 애칭" value="${escapeHtml(existing.name||'')}"><button class="btn btn-primary" id="pfDoneBtn" type="button">시작하기</button>; document.getElementById('pfAvatarBtn').addEventListener('click', ()=&gt;document.getElementById('pfPhotoInput').click()); document.getElementById('pfPhotoInput').addEventListener('change', async (e)=&gt;{ const file = e.target.files[0]; if(!file) return; try{ tempProfilePhoto = await resizeImageSquare(file); document.getElementById('pfAvatarBtn').innerHTML =`;
-}catch(err){ showToast('사진을 불러오지 못했어요'); }
+card.innerHTML = <h2&gt;프로필 설정&lt;/h2&gt;&lt;p class="sub"&gt;이름과 사진을 등록해주세요&lt;/p&gt;&lt;div class="avatar profile-form-avatar" id="pfAvatarBtn"&gt;${tempProfilePhoto?<img src="${tempProfilePhoto}">:roleIcon(myRole)}&lt;/div&gt;&lt;input type="file" id="pfPhotoInput" accept="image/*" style="display:none"&gt;&lt;input type="text" id="pfNameInput" placeholder="이름 또는 애칭" value="${escapeHtml(existing.name||'')}"><button class="btn btn-primary" id="pfDoneBtn" type="button" style="width:100%; margin-top:12px;">시작하기</button>; document.getElementById('pfAvatarBtn').addEventListener('click', ()=&gt;document.getElementById('pfPhotoInput').click()); document.getElementById('pfPhotoInput').addEventListener('change', async (e)=&gt;{ if(e.target.files[0]) { tempProfilePhoto = await resizeImageSquare(e.target.files[0]); document.getElementById('pfAvatarBtn').innerHTML =`;
+}
 });
-
 document.getElementById('pfDoneBtn').addEventListener('click', async ()=>{
-const btn = document.getElementById('pfDoneBtn');
 const name = document.getElementById('pfNameInput').value.trim() || (myRole==='rabbit'?'토끼':'쿼카');
-btn.disabled = true; btn.textContent = '시작하는 중...';
-try {
 await saveMyProfile(name, tempProfilePhoto);
 hideOnboarding();
 startApp(code);
-} catch (err) {
-btn.disabled = false; btn.textContent = '시작하기';
-}
 });
 }
 
 function openProfileEditModal(){
-const existing = (state.profiles && state.profiles[myRole]) || {};
+const existing = state.profiles[myRole] || {};
 tempProfilePhoto = existing.photo || null;
 const card = document.getElementById('profileCard');
-card.innerHTML = <h2&gt;내 프로필 수정&lt;/h2&gt;&lt;div class="avatar profile-form-avatar" id="editAvatarBtn"&gt;${tempProfilePhoto?<img src="${escapeHtml(tempProfilePhoto)}">:roleIcon(myRole)}&lt;/div&gt;&lt;input type="file" id="editPhotoInput" accept="image/*" style="display:none"&gt;&lt;input type="text" id="editNameInput" placeholder="이름 또는 애칭" value="${escapeHtml(existing.name||'')}"><div style="display:flex;gap:8px;margin-top:12px;"><button class="btn" id="editCancelBtn" type="button" style="flex:1;background:var(--bg);color:var(--muted);">취소</button><button class="btn btn-primary" id="editSaveBtn" type="button" style="flex:1;">저장</button></div>`;
-
-document.getElementById('editAvatarBtn').addEventListener('click', ()=>document.getElementById('editPhotoInput').click());
-document.getElementById('editPhotoInput').addEventListener('change', async (e)=>{
-const file = e.target.files[0];
-if(!file) return;
-try{
-tempProfilePhoto = await resizeImageSquare(file);
-document.getElementById('editAvatarBtn').innerHTML = <img src="${escapeHtml(tempProfilePhoto)}">`;
-}catch(err){ showToast('사진을 불러오지 못했어요'); }
+card.innerHTML = <h2&gt;내 프로필 수정&lt;/h2&gt;&lt;div class="avatar profile-form-avatar" id="editAvatarBtn"&gt;${tempProfilePhoto?<img src="${tempProfilePhoto}">:roleIcon(myRole)}&lt;/div&gt;&lt;input type="file" id="editPhotoInput" accept="image/*" style="display:none"&gt;&lt;input type="text" id="editNameInput" placeholder="이름 또는 애칭" value="${escapeHtml(existing.name||'')}"><div style="display:flex; gap:8px; margin-top:12px;"><button class="btn" id="editCancelBtn" type="button" style="flex:1; background:var(--bg); color:var(--muted);">취소</button><button class="btn btn-primary" id="editSaveBtn" type="button" style="flex:1;">저장</button></div>; document.getElementById('editAvatarBtn').addEventListener('click', ()=&gt;document.getElementById('editPhotoInput').click()); document.getElementById('editPhotoInput').addEventListener('change', async (e)=&gt;{ if(e.target.files[0]) { tempProfilePhoto = await resizeImageSquare(e.target.files[0]); document.getElementById('editAvatarBtn').innerHTML =`;
+}
 });
-
 document.getElementById('editCancelBtn').addEventListener('click', hideProfileOverlay);
 document.getElementById('editSaveBtn').addEventListener('click', async ()=>{
 const name = document.getElementById('editNameInput').value.trim() || roleName(myRole);
-try {
 await saveMyProfile(name, tempProfilePhoto);
 hideProfileOverlay();
-showToast('프로필을 저장했어요');
-} catch(err) {
-showToast('프로필 저장에 실패했습니다.');
-}
+showToast('프로필을 수정했어요');
 });
 showProfileOverlay();
-}
-
-function calcStreak(){
-let streak=0, d=new Date();
-while(true){
-const ds=formatDate(d);
-const has = state.diary.some(e=>e.date===ds) || state.answers.some(a=>a.date===ds);
-if(has){ streak++; d.setDate(d.getDate()-1); } else break;
-}
-return streak;
-}
-function calcDday(){
-const start = new Date(ANNIVERSARY.getFullYear(), ANNIVERSARY.getMonth(), ANNIVERSARY.getDate());
-const now = new Date();
-const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-return Math.floor((today-start)/86400000);
 }
 
 function updateChips(){
 const root = document.getElementById('chipRow');
 if(!root) return;
-if(!coupleCode || !myRole) { root.innerHTML = ''; return; }
-const streak = calcStreak(); const dday = calcDday();
-let html = <span class="chip"&gt;커플 코드 &lt;b&gt;${coupleCode}</b> <button id="changeCodeBtn" type="button">변경</button></span><span class="chip" style="border: 1px solid var(--accent); background: var(--accent-soft);">🔗 <button id="copyShareLinkBtn" style="color: var(--accent-dark); font-weight: bold; cursor: pointer; padding:0; background:none; border:none;">카톡 공지용 링크 복사</button></span>; if(streak&gt;0) html +=<span class="chip">🔥 <b>${streak}일째&lt;/b&gt; 함께 기록 중&lt;/span>;
-html += <span class="chip"&gt;&lt;span class="mini-chars"&gt;&lt;span&gt;${RABBIT_SVG}</span><span>${QUOKKA_SVG}&lt;/span&gt;&lt;/span&gt; 만난 지 &lt;b&gt;D+${dday}</b></span>`;
+let html = '';
+if(coupleCode) html += <span class="chip"&gt;커플 코드 &lt;b&gt;${coupleCode}</b> <button id="changeCodeBtn" type="button">변경</button></span><span class="chip" style="border: 1px solid var(--accent); background: var(--accent-soft);">🔗 <button id="copyShareLinkBtn" style="color: var(--accent-dark); font-weight: bold; background:none; border:none; padding:0; cursor:pointer;">카톡 공지용 링크 복사</button></span>; let streak = calcStreak(); if(streak&gt;0) html +=<span class="chip">🔥 <b>${streak}일째&lt;/b&gt; 기록 중&lt;/span>;
+html += <span class="chip"&gt;&lt;span class="mini-chars"&gt;&lt;span&gt;${RABBIT_SVG}</span><span>${QUOKKA_SVG}&lt;/span&gt;&lt;/span&gt; 만난 지 &lt;b&gt;D+${calcDday()}</b></span>`;
 root.innerHTML = html;
 
 root.onclick = (e) => {
 const btn = e.target.closest('button');
 if(!btn) return;
 if(btn.id === 'changeCodeBtn') {
-if(unsubscribeCouple) unsubscribeCouple();
 localStorage.removeItem('coupleCode'); localStorage.removeItem('myRole');
-coupleCode = null; myRole = null; state = { diary: [], answers: [], profiles: {} };
-document.getElementById('profileRow').innerHTML = '';
-window.history.replaceState({}, document.title, window.location.pathname);
-showOnboarding();
+window.location.reload();
 } else if(btn.id === 'copyShareLinkBtn') {
 const shareUrl = ``${window.location.origin}{coupleCode}&role=${myRole};
-navigator.clipboard.writeText(shareUrl).then(() => {
-showToast('카톡 공지용 링크가 복사되었습니다! 대화방에 고정해두세요 📌');
-}).catch(() => {
-const t = document.createElement('textarea'); t.value = shareUrl; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t);
-showToast('카톡 공지용 링크가 복사되었습니다! 대화방에 고정해두세요 📌');
-});
+navigator.clipboard.writeText(shareUrl).then(() => showToast('링크가 복사되었습니다! 카톡방에 공지해 두세요 📌'));
 }
 };
 }
 
 function renderProfileRow(){
 const root = document.getElementById('profileRow');
-if(!root) return;
-if(!myRole || !state.profiles){ root.innerHTML = ''; return; }
+if(!root || !myRole) return;
 const other = otherRole(myRole);
-const myStatus = state.profiles?.[myRole]?.status || '기분 없음';
-const otherStatus = state.profiles?.[other]?.status || '기분 없음';
+const myStatus = state.profiles[myRole]?.status || '기분 없음';
+const otherStatus = state.profiles[other]?.status || '기분 없음';
+const options = MOODS.map(m => <option value="${m.label}" {m.emoji} ${m.label}&lt;/option>).join('');
 
-const selectOptions = MOODS.map(m => <option value="${m.label}" {m.emoji} {escapeHtml(myStatus)}</div><div class="status-label">{escapeHtml(otherStatus)}</div><div class="status-label">{avatarHtml(myRole,26)}<span>{avatarHtml(other,26)}<span>{selectOptions}</select></div></div></div>`;
-
+root.innerHTML = <div style="display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;"&gt;&lt;div class="status-bubbles-row"&gt;&lt;div class="status-container"&gt;&lt;div class="status-bubble"&gt;${escapeHtml(myStatus)}</div><div class="status-label">{escapeHtml(otherStatus)}</div><div class="status-label">{avatarHtml(myRole,26)}<span>{avatarHtml(other,26)}<span>{options}</select></div></div></div>`;
 document.getElementById('editMyProfileBtn').addEventListener('click', openProfileEditModal);
 document.getElementById('myStatusSelect').addEventListener('change', (e)=>saveMyStatus(e.target.value));
 }
 
-function yearProgress(){
-const now = new Date(); const start = new Date(now.getFullYear(), 0, 1); const end = new Date(now.getFullYear()+1, 0, 1);
-return {pct:(Math.floor((now-start)/86400000)+1 / Math.round((end-start)/86400000))*100, elapsed:Math.floor((now-start)/86400000)+1, totalDays:Math.round((end-start)/86400000), year:now.getFullYear(), month:now.getMonth()+1, date:now.getDate()};
+function calcStreak(){
+let streak=0, d=new Date();
+while(true){
+const ds=formatDate(d);
+if(state.diary.some(e=>e.date===ds) || state.answers.some(a=>a.date===ds)) { streak++; d.setDate(d.getDate()-1); } else break;
 }
+return streak;
+}
+function calcDday(){ return Math.floor((new Date() - ANNIVERSARY)/86400000); }
+
 function renderJourney(){
-const {pct, elapsed, totalDays, year, month, date} = yearProgress(); const clamped = Math.min(97, Math.max(3, pct));
-const target = document.getElementById('journeyRoot'); const caption = document.getElementById('journeyCaption');
-if(!target || !caption) return;
-target.innerHTML = <div class="journey-track"&gt;&lt;div class="journey-fill" style="width:${clamped}%"></div></div><div class="journey-chars" style="left:${clamped}%"&gt;&lt;span class="char rabbit"&gt;${RABBIT_SVG}</span><span class="char quokka">${QUOKKA_SVG}&lt;/span&gt;&lt;/div>;
-caption.textContent = ${year}년 ${month}월 ${date}일 · 함께 걷는 ${elapsed}/${totalDays}일째 (${Math.round(pct)}%);
+const now = new Date(), start = new Date(now.getFullYear(), 0, 1), end = new Date(now.getFullYear()+1, 0, 1);
+const pct = Math.min(97, Math.max(3, ((now - start)/(end - start))*100));
+const target = document.getElementById('journeyRoot'), cap = document.getElementById('journeyCaption');
+if(!target || !cap) return;
+target.innerHTML = <div class="journey-track"&gt;&lt;div class="journey-fill" style="width:${pct}%"></div></div><div class="journey-chars" style="left:${pct}%"&gt;&lt;span class="char rabbit"&gt;${RABBIT_SVG}</span><span class="char quokka">${QUOKKA_SVG}&lt;/span&gt;&lt;/div>;
+cap.textContent = ${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 · 함께 걷는 ${Math.floor((now-start)/86400000)+1}일째;
 }
 
 function updateNavDots(){
-if(!coupleCode || !myRole) return;
-const ds = todayStr(); const qIdx = todayQuestionIndex();
-const existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
-const answeredToday = existing && myRole && existing[myRole];
-const diaryToday = state.diary.some(e=>e.date===ds);
-const dotQ = document.getElementById('dotQ'); const dotD = document.getElementById('dotD');
-if(dotQ) dotQ.style.display = answeredToday ? 'none' : 'inline-block';
-if(dotD) dotD.style.display = diaryToday ? 'none' : 'inline-block';
+const ds = todayStr(), qIdx = todayQuestionIndex();
+const ansToday = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
+const dotQ = document.getElementById('dotQ'), dotD = document.getElementById('dotD');
+if(dotQ) dotQ.style.display = (ansToday && ansToday[myRole]) ? 'none' : 'inline-block';
+if(dotD) dotD.style.display = state.diary.some(e=>e.date===ds) ? 'none' : 'inline-block';
 }
-function switchView(v){ currentView = v; document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===v)); render(); }
 
 function renderQuestionView(){
-if(!myRole) return <div class="empty"&gt;로그인 후 확인 가능합니다.&lt;/div>;
-const ds = todayStr(); const qIdx = todayQuestionIndex(); const qText = QUESTIONS[qIdx] || "오늘의 질문을 불러오는 중입니다...";
-const existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx); const other = otherRole(myRole);
-const myAns = existing ? (existing[myRole]||'') : ''; const otherAns = existing ? (existing[other]||'') : '';
-const iAnswered = myAns.trim().length>0; const partnerAnswered = otherAns.trim().length>0;
+const ds = todayStr(), qIdx = todayQuestionIndex(), other = otherRole(myRole);
+const qText = QUESTIONS[qIdx];
+const existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx) || { rabbit:'', quokka:'' };
+const myAns = existing[myRole] || '', otherAns = existing[other] || '';
 
-let partnerSection = !iAnswered ? <div class="locked-box"&gt;🔒 답변을 남기면&lt;br&gt;${escapeHtml(roleName(other))}의 답을 볼 수 있어요</div>: (partnerAnswered ?<div class="answer-readonly">${escapeHtml(otherAns)}&lt;/div> : <div class="locked-box"&gt;⏳ ${escapeHtml(roleName(other))}가<br>아직 답변하지 않았어요</div>); const past = state.answers.filter(a=&gt;a.date!==ds).sort((a,b)=&gt;b.date.localeCompare(a.date)).slice(0,3); let pastHtml = past.length ?<div class="past-answers"><h3>지난 질문들</h3>+ past.map(a=&gt;{ const mineP = a[myRole]||''; if(!mineP.trim()) return<div class="qa-mini"><div class="qm-date">${displayDate(a.date)}&lt;/div&gt;&lt;div class="qm-q"&gt;${escapeHtml(a.question)}</div><div class="qm-locked">🔒 답변하지 않아 볼 수 없어요</div></div>; return<div class="qa-mini"><div class="qm-date">${displayDate(a.date)}&lt;/div&gt;&lt;div class="qm-q"&gt;${escapeHtml(a.question)}</div><div class="qm-row"><b>${escapeHtml(roleName(myRole))}&lt;/b&gt;${escapeHtml(mineP)}</div><div class="qm-row partner"><b>${escapeHtml(roleName(other))}&lt;/b&gt;${a[other]?escapeHtml(a[other]):'아직 답변 전'}</div></div>; }).join('') +` : '';
+let partnerSection = !myAns.trim() ? <div class="locked-box"&gt;🔒 답변을 남기면&lt;br&gt;${escapeHtml(roleName(other))}의 답을 볼 수 있어요</div>: (otherAns.trim() ?<div class="answer-readonly">${escapeHtml(otherAns)}&lt;/div> : <div class="locked-box"&gt;⏳ ${escapeHtml(roleName(other))}가 아직 답변하지 않았어요</div>`);
+
+const past = state.answers.filter(a=>a.date!==ds).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
+let pastHtml = past.length ? <div class="past-answers"&gt;&lt;h3&gt;지난 질문들&lt;/h3> + past.map(a=>{
+if(!(a[myRole]||'').trim()) return <div class="qa-mini"&gt;&lt;div class="qm-date"&gt;${displayDate(a.date)}</div><div class="qm-q">{displayDate(a.date)}</div><div class="qm-q">{escapeHtml(roleName(myRole))}</b>{escapeHtml(roleName(other))}</b>${a[other]?escapeHtml(a[other]):'미작성'}&lt;/div&gt;&lt;/div>;
+}).join('') + </div> : '';
 
 return <div class="view"&gt;&lt;div class="qcard"&gt;&lt;div class="label"&gt;오늘의 질문 ·${displayDate(ds)}</div><p class="qtext">{avatarHtml(myRole,18)} {escapeHtml(myAns)}</textarea></div><div class="answer-box partner"><span class="who">{escapeHtml(roleName(other))}</span>{pastHtml}</div>`;
 }
+
 function bindQuestionView(){
 const btn = document.getElementById('saveAnswerBtn'); if(!btn) return;
-btn.addEventListener('click', async ()=>{
-const ds = todayStr(); const qIdx = todayQuestionIndex(); const val = document.getElementById('mineInput').value.trim();
-const newAns = { date: ds, questionIndex: qIdx, question: QUESTIONS[qIdx] };
-newAns[myRole] = val;
-await saveAnswerState(newAns);
-showToast('오늘의 답변이 저장됐어요'); updateChips(); updateNavDots(); render();
-});
+btn.onclick = async () => {
+const ds = todayStr(), qIdx = todayQuestionIndex(), val = document.getElementById('mineInput').value.trim();
+let existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
+if(!existing) { existing = { date:ds, questionIndex:qIdx, question:QUESTIONS[qIdx], rabbit:'', quokka:'' }; state.answers.push(existing); }
+existing[myRole] = val;
+await saveAnswerState(state.answers);
+showToast('답변이 저장되었습니다'); render();
+};
 }
 
 function renderDiaryView(){
-if(!myRole) return <div class="empty"&gt;로그인 후 확인 가능합니다.&lt;/div>;
-const sorted = [...state.diary];
-let listHtml = sorted.length===0 ? <div class="empty"&gt;아직 쓴 일기가 없어요.&lt;/div> : <div class="diary-list"&gt;&lt;h3&gt;지난 기록&lt;/h3> + sorted.map(e=>{
+const sorted = [...state.diary].sort((a,b)=>b.id.localeCompare(a.id));
+let listHtml = sorted.length===0 ? <div class="empty"&gt;아직 기록이 없어요.&lt;/div> : <div class="diary-list"&gt;&lt;h3&gt;우리의 기록&lt;/h3> + sorted.map(e=>{
 const mood = MOODS.find(m=>m.key===e.mood) || MOODS[0];
-return <div class="entry-card"&gt;${e.photo ? <img class="entry-photo" src="${escapeHtml(e.photo)}">: ''}&lt;div class="entry-head"&gt;${avatarHtml(e.author||myRole,20)}<span class="entry-mood-dot" style="background:${mood.color}"&gt;&lt;/span&gt;&lt;span class="entry-date"&gt;${escapeHtml(roleName(e.author||myRole))} · ${displayDate(e.date)} · ${mood.emoji} ${mood.label}&lt;/span&gt;&lt;/div&gt;${e.title ? <div class="entry-title"&gt;${escapeHtml(e.title)}</div>: ''}&lt;div class="entry-content ${expandedEntries[e.id]?'':'clamped'}">${escapeHtml(e.content)}&lt;/div&gt;${e.content.length>80 ? <span class="entry-more" data-id="${e.id}" data-action="toggle">latex
-{expandedEntries[e.id]?'접기':'더보기'}&lt;/span>` : ''}&lt;div class="entry-foot"&gt;
+const items = (e.comments || []).map(c=><div class="comment-item"&gt;${avatarHtml(c.author,18)}<span><span class="comment-author">${escapeHtml(roleName(c.author))}&lt;/span&gt;${escapeHtml(c.text)}</span></div>).join(''); return<div class="entry-card">${e.photo ?: ''}&lt;div class="entry-head"&gt;${avatarHtml(e.author,20)}<span class="entry-mood-dot" style="background:{escapeHtml(roleName(e.author))} · {mood.emoji} {e.title ? <div class="entry-title"&gt;${escapeHtml(e.title)}</div>: ''}&lt;div class="entry-content${expandedEntries[e.id]?'':'clamped'}">{e.content.length>80 ? <span class="entry-more" data-id="${e.id}" data-action="toggle">${expandedEntries[e.id]?'접기':'더보기'}&lt;/span> : ''}<div class="entry-foot">latex
+{confirmDeleteId===e.id ? `<button class="btn btn-danger" data-id="
 
-{confirmDeleteId===e.id ? <button class="btn btn-danger" data-id="${e.id}" data-action="confirmDelete">정말 삭제할까요?</button>: (e.author === myRole ?<button class="btn btn-danger" data-id="${e.id}" data-action="askDelete"&gt;삭제&lt;/button> : '')}</div>${commentsHtml(e)}&lt;/div>;
-}).join('') + </div>;
+{e.id}" data-action="confirmDelete">정말 삭제할까요?</button>: (e.author===myRole ?<button class="btn btn-danger" data-id="latex
+{e.id}" data-action="askDelete"&gt;삭제&lt;/button>` : '')}&lt;/div&gt;&lt;div class="comments"&gt;
 
-return <div class="view"&gt;&lt;div class="composer"&gt;&lt;div class="moods" id="moodPicker"&gt;${MOODS.filter(m=>m.key!=='none').map(m=><button class="mood-btn ${selectedMood===m.key?'selected':''}" data-mood="${m.key}"&gt;${m.emoji}</button>).join('')}&lt;/div&gt;&lt;input type="text" id="titleInput" placeholder="제목 (선택)"&gt;&lt;textarea id="contentInput" placeholder="오늘 하루는 어땠나요?"&gt;&lt;/textarea&gt;&lt;div class="photo-row"&gt;&lt;input type="file" id="photoInput" accept="image/*" style="display:none"&gt;${selectedPhoto ? <div class="photo-preview"&gt;&lt;img src="${escapeHtml(selectedPhoto)}"><button class="photo-remove" id="removePhotoBtn" type="button">✕</button></div>:<button type="button" class="photo-add-btn" id="addPhotoBtn"><span>📷</span> 사진 추가</button>}&lt;/div&gt;&lt;div style="margin-top:12px;text-align:right;"&gt;&lt;button class="btn btn-primary" id="saveDiaryBtn"&gt;일기 저장&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;${listHtml}</div>`;
+{items}<div class="comment-input-row"><input type="text" class="comment-input" data-entry="{e.id}">등록</button></div></div></div>; }).join('') +`;
+
+return <div class="view"&gt;&lt;div class="composer"&gt;&lt;div class="moods" id="moodPicker"&gt;${MOODS.filter(m=>m.key!=='none').map(m=><button class="mood-btn${selectedMood===m.key?'selected':''}" data-mood="{m.emoji}</button>).join('')}&lt;/div&gt;&lt;input type="text" id="titleInput" placeholder="제목 (선택)"&gt;&lt;textarea id="contentInput" placeholder="오늘 하루는 어땠나요?"&gt;&lt;/textarea&gt;&lt;div class="photo-row"&gt;&lt;input type="file" id="photoInput" accept="image/*" style="display:none"&gt;${selectedPhoto ? <div class="photo-preview"&gt;&lt;img src="${selectedPhoto}"><button class="photo-remove" id="removePhotoBtn">✕</button></div>:<button class="photo-add-btn" id="addPhotoBtn">📷 사진 추가</button>}&lt;/div&gt;&lt;div style="margin-top:12px; text-align:right;"&gt;&lt;button class="btn btn-primary" id="saveDiaryBtn"&gt;저장하기&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;${listHtml}</div>`;
 }
 
 function bindDiaryView(){
 const picker = document.getElementById('moodPicker'); if(!picker) return;
-picker.addEventListener('click', (e)=>{ const btn = e.target.closest('.mood-btn'); if(btn) { selectedMood = btn.dataset.mood; render(); } });
-const addBtn = document.getElementById('addPhotoBtn'); if(addBtn) addBtn.addEventListener('click', ()=>document.getElementById('photoInput').click());
-const pInput = document.getElementById('photoInput');
-if(pInput) pInput.addEventListener('change', async (e)=>{ if(e.target.files[0]) { try{ selectedPhoto = await resizeImage(e.target.files[0]); render(); }catch(err){ } } });
-const rBtn = document.getElementById('removePhotoBtn'); if(rBtn) rBtn.addEventListener('click', ()=>{ selectedPhoto = null; render(); });
+picker.onclick = (e) => { const b = e.target.closest('.mood-btn'); if(b) { selectedMood = b.dataset.mood; render(); } };
+const addBtn = document.getElementById('addPhotoBtn'); if(addBtn) addBtn.onclick = () => document.getElementById('photoInput').click();
+const pInput = document.getElementById('photoInput'); if(pInput) pInput.onchange = async (e) => { if(e.target.files[0]) { selectedPhoto = await resizeImage(e.target.files[0]); render(); } };
+const rBtn = document.getElementById('removePhotoBtn'); if(rBtn) rBtn.onclick = () => { selectedPhoto = null; render(); };
 
-document.getElementById('saveDiaryBtn').addEventListener('click', async ()=>{
-const title = document.getElementById('titleInput').value.trim(); const content = document.getElementById('contentInput').value.trim();
-if(!content){ showToast('내용을 적어주세요'); return; }
-const dObj = { id: 'd'+Date.now(), date: todayStr(), mood: selectedMood||MOODS[0].key, title, content, photo: selectedPhoto||null, author: myRole, comments: [] };
+document.getElementById('saveDiaryBtn').onclick = async () => {
+const title = document.getElementById('titleInput').value.trim(), content = document.getElementById('contentInput').value.trim();
+if(!content) return showToast('내용을 입력해 주세요');
+state.diary.push({ id:'d'+Date.now(), date:todayStr(), mood:selectedMood||MOODS[0].key, title, content, photo:selectedPhoto, author:myRole, comments:[] });
 selectedMood = null; selectedPhoto = null;
-await saveDiaryState(dObj); showToast('일기가 저장됐어요'); updateChips(); updateNavDots(); render();
-});
+await saveDiaryState(state.diary); showToast('기록을 저장했습니다'); render();
+};
 
 document.querySelectorAll('[data-action]').forEach(el=>{
-el.addEventListener('click', async ()=>{
+el.onclick = async () => {
 const id = el.dataset.id, action = el.dataset.action;
-if(action==='toggle'){ expandedEntries[id] = !expandedEntries[id]; render(); }
-else if(action==='askDelete'){ confirmDeleteId = id; render(); }
-else if(action==='confirmDelete'){ confirmDeleteId = null; await deleteDiaryState(id); render(); }
-});
+if(action==='toggle') { expandedEntries[id] = !expandedEntries[id]; render(); }
+else if(action==='askDelete') { confirmDeleteId = id; render(); }
+else if(action==='confirmDelete') { state.diary = state.diary.filter(e=>e.id!==id); confirmDeleteId = null; await saveDiaryState(state.diary); render(); }
+};
 });
 
 document.querySelectorAll('.comment-send').forEach(btn=>{
-btn.addEventListener('click', async ()=>{
-const entryId = btn.dataset.entry; const txt = document.querySelector(.comment-input[data-entry="${entryId}"]`).value.trim();
+btn.onclick = async () => {
+const eId = btn.dataset.entry, txt = document.querySelector(.comment-input[data-entry="${eId}"]`).value.trim();
 if(!txt) return;
-const docRef = db.collection('couples').doc(coupleCode).collection('diaries').doc(entryId);
-try {
-await db.runTransaction(async (transaction) => {
-const docSnap = await transaction.get(docRef);
-if (!docSnap.exists) return;
-const currentComments = docSnap.data().comments || [];
-currentComments.push({ id: 'c'+Date.now(), author: myRole, text: txt, createdAt: Date.now() });
-transaction.update(docRef, { comments: currentComments });
-});
-render();
-} catch(e) { console.error(e); }
-});
+const entry = state.diary.find(e=>e.id===eId);
+if(entry) { entry.comments = entry.comments || []; entry.comments.push({ id:'c'+Date.now(), author:myRole, text:txt }); await saveDiaryState(state.diary); render(); }
+};
 });
 }
 
 function renderHistoryView(){
-if(!myRole) return <div class="empty"&gt;로그인 후 확인 가능합니다.&lt;/div>;
 const items = [...state.diary.map(e=>({type:'diary', date:e.date, sortKey:e.id, data:e})), ...state.answers.filter(a=>a.rabbit||a.quokka).map(a=>({type:'answer', date:a.date, sortKey:a.date, data:a}))].sort((a,b)=>b.sortKey.localeCompare(a.sortKey));
 const other = otherRole(myRole);
-
-let listHtml = items.length===0 ? <div class="empty"&gt;아직 기록이 없어요.&lt;/div> : <div class="timeline"> + items.map(it=>{
+let listHtml = items.length===0 ? <div class="empty"&gt;기록이 없습니다.&lt;/div> : <div class="timeline"> + items.map(it=>{
 if(it.type==='diary'){
 const mood = MOODS.find(m=>m.key===it.data.mood) || MOODS[0];
-return <div class="tl-item type-diary"&gt;&lt;div class="tl-card"&gt;${it.data.photo ? <img class="tl-photo" src="${escapeHtml(it.data.photo)}">: ''}&lt;span class="tl-date"&gt;${displayDate(it.date)}</span><div class="tl-type">{escapeHtml(roleName(it.data.author||myRole))}의 다이어리</div>latex
-{it.data.title ? `<div class="tl-title"&gt;
+return <div class="tl-item type-diary"&gt;&lt;div class="tl-card"&gt;${it.data.photo ? <img class="tl-photo" src="${it.data.photo}">: ''}&lt;span class="tl-date"&gt;${displayDate(it.date)}</span><div class="tl-type">${mood.emoji} ${escapeHtml(roleName(it.data.author))}의 기록</div>${it.data.title ?<div class="tl-title">latex
+{escapeHtml(it.data.title)}&lt;/div>` : ''}&lt;div class="tl-body"&gt;
 
-{escapeHtml(it.data.title)}</div>: ''}&lt;div class="tl-body"&gt;${escapeHtml(it.data.content.slice(0,60))}${it.data.content.length&gt;60?'…':''}&lt;/div&gt;&lt;/div&gt;&lt;/div>;
-}
-if(!(it.data[myRole]||'').trim()) return <div class="tl-item type-answer"&gt;&lt;div class="tl-card"&gt;&lt;span class="tl-date"&gt;${displayDate(it.date)}</span><div class="tl-type">오늘의 질문</div><div class="tl-title">${escapeHtml(it.data.question)}&lt;/div&gt;&lt;div class="tl-answer-row" style="color:var(--muted);"&gt;🔒 답변하지 않아 볼 수 없어요&lt;/div&gt;&lt;/div&gt;&lt;/div>;
-return <div class="tl-item type-answer"&gt;&lt;div class="tl-card"&gt;&lt;span class="tl-date"&gt;${displayDate(it.date)}</span><div class="tl-type">오늘의 질문</div><div class="tl-title">${escapeHtml(it.data.question)}&lt;/div&gt;&lt;div class="tl-answer-row mine"&gt;&lt;b&gt;${escapeHtml(roleName(myRole))}</b>${escapeHtml(it.data[myRole])}&lt;/div&gt;&lt;div class="tl-answer-row partner"&gt;&lt;b&gt;${escapeHtml(roleName(other))}</b>${it.data[other]?escapeHtml(it.data[other]):'아직 답변 전'}&lt;/div&gt;&lt;/div&gt;&lt;/div>;
+{escapeHtml(it.data.content.slice(0,60))}latex
+{it.data.content.length&gt;60?'…':''}&lt;/div&gt;&lt;/div&gt;&lt;/div>`; } if(!(it.data[myRole]||'').trim()) return `<div class="tl-item type-answer"&gt;&lt;div class="tl-card"&gt;&lt;span class="tl-date"&gt;
+
+{displayDate(it.date)}</span><div class="tl-type">오늘의 질문</div><div class="tl-title">{displayDate(it.date)}</span><div class="tl-type">오늘의 질문</div><div class="tl-title">{escapeHtml(roleName(myRole))}</b>{escapeHtml(roleName(other))}</b>${it.data[other]?escapeHtml(it.data[other]):'미작성'}&lt;/div&gt;&lt;/div&gt;&lt;/div>;
 }).join('') + </div>;
 
-return <div class="view"&gt;&lt;div class="stats-row"&gt;&lt;div class="stat-card"&gt;&lt;div class="num"&gt;${state.diary.length}</div><div class="lbl">작성한 일기</div></div><div class="stat-card"><div class="num">${state.answers.filter(a=&gt;a.rabbit||a.quokka).length}&lt;/div&gt;&lt;div class="lbl"&gt;답변한 질문&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;${listHtml}</div>`;
+return <div class="view"&gt;&lt;div class="stats-row"&gt;&lt;div class="stat-card"&gt;&lt;div class="num"&gt;${state.diary.length}</div><div class="lbl">다이어리</div></div><div class="stat-card"><div class="num">{listHtml}</div>`;
 }
 
 function render(){
 const root = document.getElementById('viewRoot'); if(!root) return;
-if(currentView==='question'){ root.innerHTML = renderQuestionView(); bindQuestionView(); }
-else if(currentView==='diary'){ root.innerHTML = renderDiaryView(); bindDiaryView(); }
+if(currentView==='question') { root.innerHTML = renderQuestionView(); bindQuestionView(); }
+else if(currentView==='diary') { root.innerHTML = renderDiaryView(); bindDiaryView(); }
 else { root.innerHTML = renderHistoryView(); }
 updateNavDots();
 }
 
-document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click', ()=>switchView(b.dataset.view)));
+document.querySelectorAll('.nav button').forEach(b=>b.onclick = () => switchView(b.dataset.view));
 document.querySelectorAll('.tabs button').forEach(b=>{
-b.addEventListener('click', ()=>{
+b.onclick = () => {
 document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
 document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-const tPanel = document.getElementById(b.dataset.tab==='new' ? 'panelNew' : 'panelJoin'); if(tPanel) tPanel.classList.add('active');
-});
+document.getElementById(b.dataset.tab==='new' ? 'panelNew' : 'panelJoin').classList.add('active');
+};
 });
 
-document.getElementById('genCodeBtn').addEventListener('click', async ()=>{
-const btn = document.getElementById('genCodeBtn'); btn.textContent = '만드는 중...'; const code = genCode();
-try{
+document.getElementById('genCodeBtn').onclick = async () => {
+const code = genCode();
 await createCoupleDoc(code);
-const panel = document.getElementById('panelNew');
-if(panel) {
-panel.innerHTML = <div class="code-display-big"&gt;${code}</div><p style="font-size:12px;color:var(--muted);text-align:center;margin:0 0 14px;">이 코드를 상대에게 공유해주세요</p><button class="btn btn-primary" id="startWithNewCodeBtn" type="button" style="width:100%;">다음</button>`;
-document.getElementById('startWithNewCodeBtn').addEventListener('click', ()=>renderRolePickStep(code, {}));
-}
-}catch(e){ btn.textContent = '코드 만들기'; showToast(e.message); }
-});
+document.getElementById('panelNew').innerHTML = <div class="code-display-big"&gt;${code}&lt;/div&gt;&lt;p style="font-size:12px; color:var(--muted); text-align:center;"&gt;상대방에게 이 코드를 공유해 주세요&lt;/p&gt;&lt;button class="btn btn-primary" id="startNewBtn" style="width:100%;"&gt;다음&lt;/button>;
+document.getElementById('startNewBtn').onclick = () => renderRolePickStep(code, {});
+};
 
-document.getElementById('joinCodeBtn').addEventListener('click', async ()=>{
-const input = document.getElementById('joinCodeInput'); if(!input) return;
-const code = input.value.trim().toUpperCase(); if(code.length < 4){ showToast('코드를 확인해주세요'); return; }
-try{ const profiles = await fetchCoupleProfiles(code); renderRolePickStep(code, profiles); }catch(e){ showToast('존재하지 않는 코드예요'); }
-});
+document.getElementById('joinCodeBtn').onclick = async () => {
+const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+if(code.length<4) return showToast('코드를 확인해 주세요');
+try { const profiles = await fetchCoupleProfiles(code); renderRolePickStep(code, profiles); } catch(e) { showToast('없는 코드입니다'); }
+};
 
-(async function init(){
-const navBtn = document.querySelector('.nav button[data-view="question"]'); if(navBtn) navBtn.classList.add('active');
+(function init(){
+document.querySelector('.nav button[data-view="question"]').classList.add('active');
 renderJourney();
 
-try {
-const sysSnap = await db.collection('system').doc('config').get();
-if(sysSnap.exists && sysSnap.data().rawQuestions) {
-const parsedArray = JSON.parse(sysSnap.data().rawQuestions);
-if(Array.isArray(parsedArray) && parsedArray.length > 0) { QUESTIONS.length = 0; QUESTIONS.push(...parsedArray); }
-}
-} catch(e) { }
-
 const urlParams = new URLSearchParams(window.location.search);
-const paramCode = urlParams.get('code'); const paramRole = urlParams.get('role');
-const savedCode = paramCode || localStorage.getItem('coupleCode'); const savedRole = paramRole || localStorage.getItem('myRole');
+const paramCode = urlParams.get('code'), paramRole = urlParams.get('role');
+const savedCode = paramCode || localStorage.getItem('coupleCode'), savedRole = paramRole || localStorage.getItem('myRole');
 
 if(savedCode && savedRole){
-myRole = savedRole; localStorage.setItem('coupleCode', savedCode); localStorage.setItem('myRole', savedRole);
-startApp(savedCode);
+myRole = savedRole; startApp(savedCode);
 } else {
 showOnboarding();
 }
