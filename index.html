@@ -52,7 +52,46 @@ async function saveAnswer() {
   alert('저장되었습니다: ' + val);
 }
 
-if(coupleCode) switchView('question');
+// 기존 switchView 함수를 아래와 같이 확장
+function switchView(view) {
+  const root = document.getElementById('viewRoot');
+  if(view === 'question') {
+    // 기존 질문 로직 유지
+    root.innerHTML = `
+      <div class="qcard">
+        <h3>오늘의 질문</h3>
+        <p>${QUESTIONS[0]}</p>
+        <textarea id="ans" placeholder="답변을 입력하세요"></textarea>
+        <button onclick="saveAnswer()">저장</button>
+      </div>
+    `;
+  } else if(view === 'diary') {
+    // 다이어리 탭 렌더링 로직
+    root.innerHTML = `
+      <div class="qcard">
+        <h3>다이어리 작성</h3>
+        <textarea id="diaryContent" placeholder="오늘 하루는 어땠나요?"></textarea>
+        <button onclick="saveDiary()">일기 저장</button>
+        <div id="diaryList"></div>
+      </div>
+    `;
+    loadDiary(); // 일기 목록 불러오기
+  }
+}
+
+// 다이어리 저장 및 로드
+async function saveDiary() {
+  const content = document.getElementById('diaryContent').value;
+  state.diary.push({ id: Date.now(), content: content, date: todayStr() });
+  await saveDiaryState(state.diary);
+  alert('일기가 저장되었습니다!');
+  loadDiary();
+}
+
+function loadDiary() {
+  const list = document.getElementById('diaryList');
+  list.innerHTML = state.diary.map(e => `<p>${e.content}</p>`).join('');
+}
 </script>
 </body>
 </html>
