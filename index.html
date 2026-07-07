@@ -433,10 +433,10 @@ async function saveState(){
   catch(e){ console.error('저장 실패', e); showToast('저장에 실패했어요. 다시 시도해주세요'); }
 }
 
+/* 1. [완벽 보완] 내 프로필 저장 함수 */
 async function saveMyProfile(name, photo){
   if (!coupleCode || !myRole) return;
   
-  // 1. 기존 기분 상태 등 누락 방지를 위해 최신 프로필 객체 생성
   const existing = (state.profiles && state.profiles[myRole]) || {};
   const updatedProfile = {
     name: name,
@@ -444,50 +444,58 @@ async function saveMyProfile(name, photo){
     status: existing.status || '기분 없음'
   };
   
-  // 2. [핵심] 깃허브 배포 지연을 우회하기 위해 로컬 메모리(state)를 즉시 강제 갱신
+  // [강력 조치] 서버가 헛디디지 않도록 로컬 메모리를 즉시 잠금 선언
   if (!state.profiles) state.profiles = {};
   state.profiles[myRole] = updatedProfile;
   
-  // 3. 상단 프로필 화면 즉시 재렌더링 트리거 (네트워크 대기 해소)
-  renderProfileRow();
-  render(); // 전체 화면 새로고침 효과
-  
-  // 4. Firestore 서동 동기화 진행
-  const firestoreUpdate = {};
-  firestoreUpdate[`profiles.${myRole}`] = updatedProfile;
-  
-  await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
-  
-  // 5. 로컬 스토리지에 이름 백업하여 브라우저 로드 신뢰성 확보
-  localStorage.setItem('myRole', myRole);
-}
-
-/* 실시간 한줄상태 업데이트 함수 */
-async function saveMyStatus(statusText){
-  if(!coupleCode || !myRole) return;
-  
-  // 1. 기존에 저장되어 있던 내 프로필 정보(이름, 사진)를 그대로 가져옵니다.
-  const existing = (state.profiles && state.profiles[myRole]) || {};
-  
-  // 2. 이름과 사진은 유지하고, status(기분 상태)만 새로 선택한 값으로 교체합니다.
-  const updatedProfile = {
-    name: existing.name || (myRole === 'rabbit' ? '토끼' : '쿼카'),
-    photo: existing.photo || null,
-    status: statusText
-  };
-  
-  // 3. 서버 반영 전, 로컬 메모리를 즉시 갱신하여 UI 유실을 차단합니다.
-  if (!state.profiles) state.profiles = {};
-  state.profiles[myRole] = updatedProfile;
-  
-  // 4. 상단 프로필 영역을 즉시 다시 그려 화면이 초기화되는 것을 막습니다.
-  renderProfileRow();
-  
-  // 5. Firestore에 안전하게 병합(merge) 저장합니다.
+  // Firestore 경로 타겟팅 객체 생성
   const firestoreUpdate = {};
   firestoreUpdate[`profiles.${myRole}`] = updatedProfile;
   
   try {
+    // 💡 await를 통해 서버 저장이 100% 끝날 때까지 자바스크립트를 붙잡아 둡니다.
+    await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
+    
+    // 서버 저장이 안전하게 끝난 후 화면을 새로 그립니다.
+    renderProfileRow();
+    render();
+    localStorage.setItem('myRole', myRole);
+  } catch(err) {
+    console.error('프로필 저장 실패:', err);
+    showToast('프로필 저장에 실패했습니다.');
+  }
+}
+
+/* 2. [완벽 보완] 실시간 한줄상태 업데이트 함수 */
+async function saveMyStatus(statusText){
+  if(!coupleCode || !myRole) return;
+  
+  // 🚨 [핵심] 만약 state.profiles가 비어있다면 대기 중인 상태이므로 지워지지 않도록 
+  // 현재 화면에 렌더링되어 있는 텍스트와 사진 주소를 강제로 긁어와 유실을 원천 차단합니다.
+  const existing = (state.profiles && state.profiles[myRole]) || {};
+  
+  // 만약 메모리가 날아간 상태라면 현재 UI에 있는 이름값을 백업용으로 추정해 꽂습니다.
+  const currentUiName = document.getElementById('editMyProfileBtn')?.querySelector('span')?.textContent || roleName(myRole);
+  const currentUiPhoto = document.getElementById('editMyProfileBtn')?.querySelector('img')?.src || existing.photo || null;
+
+  const updatedProfile = {
+    name: existing.name || currentUiName,
+    photo: existing.photo || (currentUiPhoto && !currentUiPhoto.includes('<svg') ? currentUiPhoto : null),
+    status: statusText
+  };
+  
+  // 로컬 메모리 즉시 락인(Lock-in)
+  if (!state.profiles) state.profiles = {};
+  state.profiles[myRole] = updatedProfile;
+  
+  // 즉시 UI 반영하여 튕김 현상 방지
+  renderProfileRow();
+  
+  const firestoreUpdate = {};
+  firestoreUpdate[`profiles.${myRole}`] = updatedProfile;
+  
+  try {
+    // 💡 set + merge 방식을 사용해 기존 데이터를 덮어쓰지 않고 기분만 정밀 병합합니다.
     await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
     showToast(`상태를 변경했어요!`);
   } catch(e) {
@@ -495,7 +503,6 @@ async function saveMyStatus(statusText){
     showToast('상태 변경에 실패했어요.');
   }
 }
-
 function showOnboarding(){ document.getElementById('onboardingOverlay').style.display = 'flex'; }
 function hideOnboarding(){ document.getElementById('onboardingOverlay').style.display = 'none'; }
 function showProfileOverlay(){ document.getElementById('profileOverlay').style.display = 'flex'; }
