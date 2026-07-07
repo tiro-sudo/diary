@@ -476,19 +476,22 @@ async function saveMyProfile(name, photo){
   }
 }
 
-/* 2. 실시간 한줄상태 업데이트 함수 (초기화 버그 원천 차단) */
+/* [최종 무결성 패치] 실시간 한줄상태 업데이트 함수 */
 async function saveMyStatus(statusText){
   if(!coupleCode || !myRole) return;
   
+  // 1. 현재 로컬 메모리(state)에 있는 내 프로필을 먼저 가져옵니다.
+  const existing = (state.profiles && state.profiles[myRole]) || {};
+  
+  // 2. 만약 메모리가 비어있다면 화면 UI(DOM)에서 이름과 사진을 역추적합니다.
   const profileBtn = document.getElementById('editMyProfileBtn');
   const currentUiName = profileBtn ? profileBtn.querySelector('span').textContent.trim() : null;
   const currentUiImg = profileBtn ? profileBtn.querySelector('img') : null;
   const currentUiPhotoSrc = currentUiImg ? currentUiImg.src : null;
   
-  const existing = (state.profiles && state.profiles[myRole]) || {};
-  
+  // 3. 최종 보존할 데이터 세트를 구성합니다.
   const finalName = existing.name || currentUiName || (myRole === 'rabbit' ? '토끼' : '쿼카');
-  const finalPhoto = existing.photo || currentUiPhotoSrc || null;
+  const finalPhoto = existing.photo || (currentUiPhotoSrc && !currentUiPhotoSrc.includes('<svg') ? currentUiPhotoSrc : null);
 
   const updatedProfile = {
     name: finalName,
@@ -496,15 +499,19 @@ async function saveMyStatus(statusText){
     status: statusText
   };
   
+  // 4. [핵심] 서버로 가기 전 로컬 캐시를 즉시 락(Lock)하여 UI 튕김을 원천 차단합니다.
   if (!state.profiles) state.profiles = {};
   state.profiles[myRole] = updatedProfile;
   
+  // 5. 화면을 먼저 강제로 그려서 서버 레이턴시를 감춥니다.
   renderProfileRow();
   
+  // 6. Firestore 객체 업데이트 타겟 지정 후 독립 필드로 병합 전송합니다.
   const firestoreUpdate = {};
   firestoreUpdate[`profiles.${myRole}`] = updatedProfile;
   
   try {
+    // update가 아닌 set+merge를 사용하여 특정 캐릭터 객체 전체를 안전하게 병합합니다.
     await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
     showToast(`상태를 변경했어요!`);
   } catch(e) {
