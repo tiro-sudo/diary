@@ -121,8 +121,6 @@ textarea:focus,input:focus{outline:none;border-color:var(--accent);}
 .photo-row{margin-top:12px;}
 .photo-add-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:20px;border:1px dashed var(--border);background:var(--bg);color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer;}
 .photo-add-btn:hover{border-color:var(--accent);color:var(--accent-dark);}
-.photo-preview{position:relative;display:inline-block;margin-top:8px;}
-/* 💡 [수정] 대규모 이미지 모바일 오버플로우 및 깨짐 현상 차단 CSS 오류 수정 */
 .photo-preview img{max-width:100%;max-height:200px;object-fit:contain;border-radius:10px;display:block;border:1px solid var(--border);}
 .photo-remove{position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;border:2px solid #fff;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 
@@ -315,7 +313,6 @@ const p = (state.profiles && state.profiles[role]) || {};
 const inner = p.photo ? <img src="${escapeHtml(p.photo)}">: roleIcon(role); return<span class="avatar" style="width:${size}px;height:${size}px;">${inner}&lt;/span>;
 }
 
-/* 💡 [보안 완화] 강력한 XSS 스크립팅 원천 차단 */
 function escapeHtml(str){
 if(!str) return '';
 return str.replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"').replace(/'/g,''').replace(/\n/g,'<br>');
@@ -373,14 +370,6 @@ reader.readAsDataURL(file);
 });
 }
 
-function genCode(){
-const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-let code = '';
-for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
-return code;
-}
-
-/* 💡 [방어 완비] 트랜잭션을 통한 중복 코드 생성 에러 원천 차단 */
 async function createCoupleDoc(code){
 const docRef = db.collection('couples').doc(code);
 await db.runTransaction(async (transaction) => {
@@ -399,7 +388,6 @@ const data = snap.data() || {};
 return data.profiles || {};
 }
 
-/* 💡 [누락 수정] 기존 잔여 리스너를 완전히 청소 해제하는 unsubscribe 로직 정상화 */
 function subscribeCouple(code){
 if(unsubscribeCouple) { unsubscribeCouple(); unsubscribeCouple = null; }
 if(unsubscribeDiary) { unsubscribeDiary(); unsubscribeDiary = null; }
@@ -432,14 +420,12 @@ render();
 );
 }
 
-/* 💡 [타임스탬프] 로컬 디바이스 시간이 아닌 파이어베이스 정밀 서버 타임스탬프 탑재 */
 async function saveDiaryState(diaryObj){
 if(!coupleCode || !diaryObj.id) return;
 diaryObj.serverCreatedAt = firebase.firestore.FieldValue.serverTimestamp();
 await db.collection('couples').doc(coupleCode).collection('diaries').doc(diaryObj.id).set(diaryObj);
 }
 
-/* 💡 [권한 검증] 일기 작성 고유 권한(작성자 검증) 트랜잭션 단계 락인 처리 */
 async function deleteDiaryState(diaryId){
 if(!coupleCode || !diaryId) return;
 const docRef = db.collection('couples').doc(coupleCode).collection('diaries').doc(diaryId);
@@ -457,7 +443,6 @@ showToast(e.message || '삭제에 실패했습니다.');
 }
 }
 
-/* 💡 [동시성 수리] runTransaction() 기반 질문 답변 실시간 안전 결합 */
 async function saveAnswerState(newAnswerObj){
 if(!coupleCode) return;
 lastLocalWriteTime = Date.now();
@@ -729,7 +714,6 @@ return <div class="entry-card"&gt;${e.photo ? <img class="entry-photo" src="${es
 return <div class="view"&gt;&lt;div class="composer"&gt;&lt;div class="moods" id="moodPicker"&gt;${MOODS.filter(m=>m.key!=='none').map(m=><button class="mood-btn ${selectedMood===m.key?'selected':''}" data-mood="${m.key}"&gt;${m.emoji}</button>).join('')}&lt;/div&gt;&lt;input type="text" id="titleInput" placeholder="제목 (선택)"&gt;&lt;textarea id="contentInput" placeholder="오늘 하루는 어땠나요?"&gt;&lt;/textarea&gt;&lt;div class="photo-row"&gt;&lt;input type="file" id="photoInput" accept="image/*" style="display:none"&gt;${selectedPhoto ? <div class="photo-preview"&gt;&lt;img src="${escapeHtml(selectedPhoto)}"><button class="photo-remove" id="removePhotoBtn" type="button">✕</button></div>:<button type="button" class="photo-add-btn" id="addPhotoBtn"><span>📷</span> 사진 추가</button>}&lt;/div&gt;&lt;div style="margin-top:12px;text-align:right;"&gt;&lt;button class="btn btn-primary" id="saveDiaryBtn"&gt;일기 저장&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;${listHtml}</div>`;
 }
 
-/* 💡 [동시성 수리] runTransaction() 기반 다이어리 댓글 충돌 제어 시스템 이식 */
 function bindDiaryView(){
 const picker = document.getElementById('moodPicker'); if(!picker) return;
 picker.addEventListener('click', (e)=>{ const btn = e.target.closest('.mood-btn'); if(btn) { selectedMood = btn.dataset.mood; render(); } });
@@ -794,7 +778,6 @@ return <div class="tl-item type-answer"&gt;&lt;div class="tl-card"&gt;&lt;span c
 return <div class="view"&gt;&lt;div class="stats-row"&gt;&lt;div class="stat-card"&gt;&lt;div class="num"&gt;${state.diary.length}</div><div class="lbl">작성한 일기</div></div><div class="stat-card"><div class="num">${state.answers.filter(a=&gt;a.rabbit||a.quokka).length}&lt;/div&gt;&lt;div class="lbl"&gt;답변한 질문&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;${listHtml}</div>`;
 }
 
-/* 💡 [최적화] 고유 선 렌더링 검증 가드 결합 */
 function render(){
 const root = document.getElementById('viewRoot'); if(!root) return;
 if(currentView==='question'){ root.innerHTML = renderQuestionView(); bindQuestionView(); }
@@ -833,6 +816,7 @@ try{ const profiles = await fetchCoupleProfiles(code); renderRolePickStep(code, 
 (async function init(){
 const navBtn = document.querySelector('.nav button[data-view="question"]'); if(navBtn) navBtn.classList.add('active');
 renderJourney();
+
 try {
 const sysSnap = await db.collection('system').doc('config').get();
 if(sysSnap.exists && sysSnap.data().rawQuestions) {
