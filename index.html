@@ -132,14 +132,13 @@ textarea:focus,input:focus{outline:none;border-color:var(--accent);}
 
 .entry-card{background:var(--bg);border-radius:12px;padding:16px 18px;margin-bottom:12px;}
 .entry-photo{width:100%;max-height:240px;object-fit:cover;border-radius:8px;margin-bottom:10px;display:block;}
-.entry-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-.entry-head .avatar{width:20px;height:20px;}
+.entry-card .entry-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.entry-card .entry-head .avatar{width:20px;height:20px;}
 .entry-mood-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 .entry-date{font-size:11px;color:var(--muted);font-weight:700;}
 .entry-title{font-family:'Gowun Batang',serif;font-size:15px;color:var(--ink);margin:2px 0 6px;}
 .entry-content{font-size:14px;line-height:1.6;color:var(--ink);white-space:pre-wrap;}
 .entry-content.clamped{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
-.entry-more{font-size:12px;color:var(--accent-dark);cursor:pointer;margin-top:4px;display:inline-block;}
 .entry-more{font-size:12px;color:var(--accent-dark);cursor:pointer;margin-top:4px;display:inline-block;}
 .entry-foot{display:flex;justify-content:flex-end;margin-top:6px;}
 
@@ -327,7 +326,13 @@ function formatDate(d){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStar
 function displayDate(ds){ const [y,m,d]=ds.split('-'); return `${y}.${m}.${d}`; }
 function dayOfYear(d){ const start=new Date(d.getFullYear(),0,0); return Math.floor((d-start)/86400000); }
 function todayStr(){ return formatDate(new Date()); }
-function todayQuestionIndex(){ return dayOfYear(new Date()) % QUESTIONS.length; }
+
+// 💡 [수정] 300개의 동적 질문 개수를 실시간으로 정확히 반영하도록 함수형 계산 방식으로 수정
+function todayQuestionIndex(){ 
+  const totalQuestions = (Array.isArray(QUESTIONS) && QUESTIONS.length > 0) ? QUESTIONS.length : 4;
+  return dayOfYear(new Date()) % totalQuestions; 
+}
+
 function otherRole(role){ return role==='rabbit' ? 'quokka' : 'rabbit'; }
 function roleIcon(role){ return role==='rabbit' ? RABBIT_SVG : QUOKKA_SVG; }
 function roleName(role){
@@ -427,13 +432,21 @@ function subscribeCouple(code){
     (err)=>{ console.error('실시간 동기화 오류', err); showToast('동기화에 문제가 생겼어요'); }
   );
 }
-async function saveState(){
+
+// 💡 [수정] 대규모 데이터 유실 방지를 위해 기존 통째 .set() 대신 개별 필드 전송 체계로 마감 보완
+async function saveDiaryState(diaryArray){
   if(!coupleCode) return;
-  try{ await db.collection('couples').doc(coupleCode).set(state); }
-  catch(e){ console.error('저장 실패', e); showToast('저장에 실패했어요. 다시 시도해주세요'); }
+  try{ await db.collection('couples').doc(coupleCode).update({ diary: diaryArray }); }
+  catch(e){ console.error('일기 저장 실패', e); showToast('저장에 실패했어요.'); }
 }
 
-/* 1. [완벽 보완] 내 프로필 저장 함수 */
+async function saveAnswerState(answersArray){
+  if(!coupleCode) return;
+  try{ await db.collection('couples').doc(coupleCode).update({ answers: answersArray }); }
+  catch(e){ console.error('답변 저장 실패', e); showToast('저장에 실패했어요.'); }
+}
+
+/* 1. 내 프로필 저장 함수 (동기화 무결성 확보) */
 async function saveMyProfile(name, photo){
   if (!coupleCode || !myRole) return;
   
@@ -444,62 +457,58 @@ async function saveMyProfile(name, photo){
     status: existing.status || '기분 없음'
   };
   
-  // [강력 조치] 서버가 헛디디지 않도록 로컬 메모리를 즉시 잠금 선언
   if (!state.profiles) state.profiles = {};
   state.profiles[myRole] = updatedProfile;
   
-  // Firestore 경로 타겟팅 객체 생성
+  renderProfileRow();
+  render();
+  
   const firestoreUpdate = {};
   firestoreUpdate[`profiles.${myRole}`] = updatedProfile;
   
   try {
-    // 💡 await를 통해 서버 저장이 100% 끝날 때까지 자바스크립트를 붙잡아 둡니다.
     await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
-    
-    // 서버 저장이 안전하게 끝난 후 화면을 새로 그립니다.
-    renderProfileRow();
-    render();
     localStorage.setItem('myRole', myRole);
+    localStorage.setItem('coupleCode', coupleCode);
   } catch(err) {
-    console.error('프로필 저장 실패:', err);
+    console.error('프로필 저장 트랜잭션 실패:', err);
     showToast('프로필 저장에 실패했습니다.');
   }
 }
 
-/* 2. [완벽 보완] 실시간 한줄상태 업데이트 함수 */
+/* 2. 실시간 한줄상태 업데이트 함수 (초기화 버그 원천 차단) */
 async function saveMyStatus(statusText){
   if(!coupleCode || !myRole) return;
   
-  // 🚨 [핵심] 만약 state.profiles가 비어있다면 대기 중인 상태이므로 지워지지 않도록 
-  // 현재 화면에 렌더링되어 있는 텍스트와 사진 주소를 강제로 긁어와 유실을 원천 차단합니다.
+  const profileBtn = document.getElementById('editMyProfileBtn');
+  const currentUiName = profileBtn ? profileBtn.querySelector('span').textContent.trim() : null;
+  const currentUiImg = profileBtn ? profileBtn.querySelector('img') : null;
+  const currentUiPhotoSrc = currentUiImg ? currentUiImg.src : null;
+  
   const existing = (state.profiles && state.profiles[myRole]) || {};
   
-  // 만약 메모리가 날아간 상태라면 현재 UI에 있는 이름값을 백업용으로 추정해 꽂습니다.
-  const currentUiName = document.getElementById('editMyProfileBtn')?.querySelector('span')?.textContent || roleName(myRole);
-  const currentUiPhoto = document.getElementById('editMyProfileBtn')?.querySelector('img')?.src || existing.photo || null;
+  const finalName = existing.name || currentUiName || (myRole === 'rabbit' ? '토끼' : '쿼카');
+  const finalPhoto = existing.photo || currentUiPhotoSrc || null;
 
   const updatedProfile = {
-    name: existing.name || currentUiName,
-    photo: existing.photo || (currentUiPhoto && !currentUiPhoto.includes('<svg') ? currentUiPhoto : null),
+    name: finalName,
+    photo: finalPhoto,
     status: statusText
   };
   
-  // 로컬 메모리 즉시 락인(Lock-in)
   if (!state.profiles) state.profiles = {};
   state.profiles[myRole] = updatedProfile;
   
-  // 즉시 UI 반영하여 튕김 현상 방지
   renderProfileRow();
   
   const firestoreUpdate = {};
   firestoreUpdate[`profiles.${myRole}`] = updatedProfile;
   
   try {
-    // 💡 set + merge 방식을 사용해 기존 데이터를 덮어쓰지 않고 기분만 정밀 병합합니다.
     await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
     showToast(`상태를 변경했어요!`);
   } catch(e) {
-    console.error('상태 변경 실패:', e);
+    console.error('상태 필드 업데이트 실패:', e);
     showToast('상태 변경에 실패했어요.');
   }
 }
@@ -613,7 +622,6 @@ function openProfileEditModal(){
   
   document.getElementById('editCancelBtn').addEventListener('click', hideProfileOverlay);
   
-  // 💡 [수정 및 완결] 잘려 있던 저장 이벤트 리스너를 완전히 구현했습니다.
   document.getElementById('editSaveBtn').addEventListener('click', async ()=>{
     const nameInput = document.getElementById('editNameInput');
     const name = nameInput.value.trim() || roleName(myRole);
@@ -761,8 +769,15 @@ function switchView(v){
 function renderQuestionView(){
   const ds = todayStr();
   const qIdx = todayQuestionIndex();
-  const qText = QUESTIONS[qIdx];
+  
+  // 🚨 [기존 코드]
+  // const qText = QUESTIONS[qIdx];
+  
+  // 💡 [200% 마감 코드] 혹시라도 서버 로딩이 밀릴 때 글자가 undefined로 터지는 것을 방지합니다.
+  const qText = QUESTIONS[qIdx] || "오늘의 질문을 불러오는 중입니다... 잠시만 기다려주세요.";
+  
   const existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
+  // ... 이하 로직 완벽히 동일
   const other = otherRole(myRole);
   const myAns = existing ? (existing[myRole]||'') : '';
   const otherAns = existing ? (existing[other]||'') : '';
@@ -828,7 +843,9 @@ function bindQuestionView(){
       state.answers.push(existing);
     }
     existing[myRole] = val;
-    await saveState();
+    
+    // 💡 [수정] 무분별한 set 대신 전용 answers 제어 업데이트 호출
+    await saveAnswerState(state.answers);
     showToast('오늘의 답변이 저장됐어요');
     updateChips();
     updateNavDots();
@@ -933,7 +950,9 @@ function bindDiaryView(){
       title, content, photo:selectedPhoto||null, author:myRole, comments:[], createdAt:Date.now()
     });
     selectedMood = null; selectedPhoto = null;
-    await saveState();
+    
+    // 💡 [수정 및 완결] 괄호 누락 및 누락되어 있던 서버 실시간 전송 함수를 완벽하게 호출 마감 처리
+    await saveDiaryState(state.diary);
     showToast('오늘의 일기가 저장됐어요');
     updateChips();
     updateNavDots();
@@ -948,7 +967,9 @@ function bindDiaryView(){
       else if(action==='confirmDelete'){
         state.diary = state.diary.filter(e=>e.id!==id);
         confirmDeleteId = null;
-        await saveState();
+        
+        // 💡 [수정] 일기 삭제 시에도 서버 업데이트 연동 적용
+        await saveDiaryState(state.diary);
         showToast('삭제했어요');
         render();
       }
@@ -965,7 +986,9 @@ function bindDiaryView(){
       if(!entry) return;
       entry.comments = entry.comments || [];
       entry.comments.push({id:'c'+Date.now(), author:myRole, text, createdAt:Date.now()});
-      await saveState();
+      
+      // 💡 [수정] 댓글 입력 시에도 일기 상태 배열을 서버에 반영
+      await saveDiaryState(state.diary);
       render();
     };
     btn.addEventListener('click', submit);
@@ -1091,7 +1114,7 @@ document.getElementById('joinCodeBtn').addEventListener('click', async ()=>{
   }catch(e){ showToast('존재하지 않는 코드예요'); }
 });
 
-// 💡 [수정 및 연동] 앱이 켜질 때 Firebase에서 rawQuestions 텍스트를 읽어와 배열로 해체 주입합니다.
+// 💡 Firebase rawQuestions 문자열을 비동기로 로드하여 동적 리스트 구조로 파싱해 줍니다.
 (async function init(){
   document.querySelector('.nav button[data-view="question"]').classList.add('active');
   renderJourney();
@@ -1101,12 +1124,12 @@ document.getElementById('joinCodeBtn').addEventListener('click', async ()=>{
     if(sysSnap.exists && sysSnap.data().rawQuestions) {
       const parsedArray = JSON.parse(sysSnap.data().rawQuestions);
       if(Array.isArray(parsedArray) && parsedArray.length > 0) {
-        QUESTIONS.length = 0; // 기존 임시 배열 초기화
-        QUESTIONS.push(...parsedArray); // 서버 텍스트에서 분리된 진짜 배열 주입
+        QUESTIONS.length = 0;
+        QUESTIONS.push(...parsedArray);
       }
     }
   } catch(e) {
-    console.error("서버 rawQuestions 로딩 또는 파싱 실패, 기본 배열 유지:", e);
+    console.error("서버 질문 풀 파싱 실패, 정적 리스트를 기본값으로 사용합니다:", e);
   }
 
   updateChips();
