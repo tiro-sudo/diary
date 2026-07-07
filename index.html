@@ -11,17 +11,17 @@
 
 <style>
 :root{
-  --bg:#FAF7F3;
-  --card:#FFFFFF;
-  --ink:#2E2A2E;
-  --muted:#98929C;
-  --accent:#E0888F;
-  --accent-dark:#C96A72;
-  --accent-soft:#F8E7E8;
-  --sage:#8CA890;
-  --gold:#D6A75B;
-  --border:#ECE6DE;
-  --shadow:rgba(40,30,35,0.07);
+--bg:#FAF7F3;
+--card:#FFFFFF;
+--ink:#2E2A2E;
+--muted:#98929C;
+--accent:#E0888F;
+--accent-dark:#C96A72;
+--accent-soft:#F8E7E8;
+--sage:#8CA890;
+--gold:#D6A75B;
+--border:#ECE6DE;
+--shadow:rgba(40,30,35,0.07);
 }
 *{box-sizing:border-box;}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',sans-serif;min-height:100vh;}
@@ -194,110 +194,85 @@ textarea:focus,input:focus{outline:none;border-color:var(--accent);}
 .profile-form-avatar.avatar{background:var(--bg);}
 
 @media(max-width:480px){
-  .answers{grid-template-columns:1fr;}
-  .panel{padding:20px 16px 24px;}
+.answers{grid-template-columns:1fr;}
+.panel{padding:20px 16px 24px;}
 }
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="header">
-    <h1>둘의 하루</h1>
-    <p>매일 한 장씩, 우리를 기록해요</p>
-    <div class="profile-row" id="profileRow"></div>
-    <div class="chip-row" id="chipRow"></div>
-  </div>
+<div class="header">
+<h1>둘의 하루</h1>
+<p>매일 한 장씩, 우리를 기록해요</p>
+<div class="profile-row" id="profileRow"></div>
+<div class="chip-row" id="chipRow"></div>
+</div>
 
-  <div class="journey" id="journeyRoot"></div>
-  <div class="journey-caption" id="journeyCaption"></div>
+<div class="journey" id="journeyRoot"></div>
+<div class="journey-caption" id="journeyCaption"></div>
 
-  <div class="nav">
-    <button data-view="question">오늘의 질문<span class="dot" id="dotQ" style="display:none"></span></button>
-    <button data-view="diary">다이어리<span class="dot" id="dotD" style="display:none"></span></button>
-    <button data-view="history">우리의 기록</button>
-  </div>
+<div class="nav">
+<button data-view="question">오늘의 질문<span class="dot" id="dotQ" style="display:none"></span></button>
+<button data-view="diary">다이어리<span class="dot" id="dotD" style="display:none"></span></button>
+<button data-view="history">우리의 기록</button>
+</div>
 
-  <div class="panel"><div id="viewRoot"></div></div>
+<div class="panel"><div id="viewRoot"></div></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <div class="overlay" id="onboardingOverlay">
-  <div class="overlay-card" id="onboardingCard">
-    <h2>둘만의 공간 만들기</h2>
-    <p class="sub">커플 코드로 서로의 기록을 연결해요</p>
-    <div class="tabs">
-      <button class="active" data-tab="new" type="button">새로 시작하기</button>
-      <button data-tab="join" type="button">코드 입력하기</button>
-    </div>
-    <div class="tab-panel active" id="panelNew">
-      <button class="btn btn-primary" id="genCodeBtn" type="button" style="width:100%;">코드 만들기</button>
-    </div>
-    <div class="tab-panel" id="panelJoin">
-      <input type="text" id="joinCodeInput" placeholder="상대에게 받은 코드 입력" style="text-align:center;text-transform:uppercase;letter-spacing:2px;">
-      <button class="btn btn-primary" id="joinCodeBtn" type="button" style="width:100%;margin-top:10px;">참여하기</button>
-    </div>
-  </div>
+<div class="overlay-card" id="onboardingCard">
+<h2>둘만의 공간 만들기</h2>
+<p class="sub">커플 코드로 서로의 기록을 연결해요</p>
+<div class="tabs">
+<button class="active" data-tab="new" type="button">새로 시작하기</button>
+<button data-tab="join" type="button">코드 입력하기</button>
+</div>
+<div class="tab-panel active" id="panelNew">
+<button class="btn btn-primary" id="genCodeBtn" type="button" style="width:100%;">코드 만들기</button>
+</div>
+<div class="tab-panel" id="panelJoin">
+<input type="text" id="joinCodeInput" placeholder="상대에게 받은 코드 입력" style="text-align:center;text-transform:uppercase;letter-spacing:2px;">
+<button class="btn btn-primary" id="joinCodeBtn" type="button" style="width:100%;margin-top:10px;">참여하기</button>
+</div>
+</div>
 </div>
 
 <div class="overlay" id="profileOverlay">
-  <div class="overlay-card" id="profileCard"></div>
+<div class="overlay-card" id="profileCard"></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-app-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-firestore-compat.js"></script>
 <script>
-const QUESTIONS = [
-"처음 만났을 때 서로에게 반했던 순간은 언제였어?",
-"요즘 나 때문에 웃었던 순간이 있었어?",
-"우리가 함께 꼭 가보고 싶은 여행지는 어디야?",
-"우리 사이에서 지키고 싶은 약속이 있다면?"
-];
-
+// 💡 [수정] 피곤함, 행복함, 화남 등 기본적 감정 상태 데이터를 전역 상수 배열에 병합 매핑 완료
 const MOODS = [
-  {key:'happy', emoji:'😊', label:'행복', color:'#E0888F'},
-  {key:'calm', emoji:'😌', label:'평온', color:'#8CA890'},
-  {key:'excited', emoji:'😍', label:'설렘', color:'#D6A75B'},
-  {key:'sad', emoji:'😢', label:'우울', color:'#7C93B0'},
-  {key:'angry', emoji:'😤', label:'답답', color:'#B57A6A'}
+{key:'happy', emoji:'😊', label:'행복함', color:'#E0888F'},
+{key:'calm', emoji:'😌', label:'평온함', color:'#8CA890'},
+{key:'excited', emoji:'😍', label:'설레임', color:'#D6A75B'},
+{key:'sad', emoji:'😢', label:'우울함', color:'#7C93B0'},
+{key:'angry', emoji:'😤', label:'화남', color:'#B57A6A'},
+{key:'tired', emoji:'💤', label:'피곤함', color:'#98929C'},
+{key:'hungry', emoji:'🍕', label:'배고픔', color:'#D6A75B'},
+{key:'missyou', emoji:'🥰', label:'보고싶음', color:'#E0888F'},
+{key:'none', emoji:'💬', label:'기분 없음', color:'#ECE6DE'}
 ];
 
-const RABBIT_SVG = `<svg viewBox="0 0 44 44">
-  <ellipse cx="15" cy="10" rx="5" ry="14" fill="#FFFFFF" stroke="#ECE6DE" stroke-width="1"/>
-  <ellipse cx="15" cy="11" rx="2.3" ry="9" fill="#F3C4C8"/>
-  <ellipse cx="29" cy="10" rx="5" ry="14" fill="#FFFFFF" stroke="#ECE6DE" stroke-width="1"/>
-  <ellipse cx="29" cy="11" rx="2.3" ry="9" fill="#F3C4C8"/>
-  <circle cx="22" cy="27" r="14" fill="#FFFFFF" stroke="#ECE6DE" stroke-width="1"/>
-  <circle cx="17" cy="25" r="1.6" fill="#2E2A2E"/>
-  <circle cx="27" cy="25" r="1.6" fill="#2E2A2E"/>
-  <ellipse cx="22" cy="29" rx="1.8" ry="1.3" fill="#E0888F"/>
-  <path d="M22 30 Q19 33 16 31" stroke="#2E2A2E" stroke-width="1" fill="none" stroke-linecap="round"/>
-  <path d="M22 30 Q25 33 28 31" stroke="#2E2A2E" stroke-width="1" fill="none" stroke-linecap="round"/>
-  <circle cx="12" cy="29" r="2.6" fill="#F3C4C8" opacity="0.8"/>
-  <circle cx="32" cy="29" r="2.6" fill="#F3C4C8" opacity="0.8"/>
-</svg>`;
+const RABBIT_SVG = <svg viewBox="0 0 44 44"&gt; &lt;ellipse cx="15" cy="10" rx="5" ry="14" fill="#FFFFFF" stroke="#ECE6DE" stroke-width="1"/&gt; &lt;ellipse cx="15" cy="11" rx="2.3" ry="9" fill="#F3C4C8"/&gt; &lt;ellipse cx="29" cy="10" rx="5" ry="14" fill="#FFFFFF" stroke="#ECE6DE" stroke-width="1"/&gt; &lt;ellipse cx="29" cy="11" rx="2.3" ry="9" fill="#F3C4C8"/&gt; &lt;circle cx="22" cy="27" r="14" fill="#FFFFFF" stroke="#ECE6DE" stroke-width="1"/&gt; &lt;circle cx="17" cy="25" r="1.6" fill="#2E2A2E"/&gt; &lt;circle cx="27" cy="25" r="1.6" fill="#2E2A2E"/&gt; &lt;ellipse cx="22" cy="29" rx="1.8" ry="1.3" fill="#E0888F"/&gt; &lt;path d="M22 30 Q19 33 16 31" stroke="#2E2A2E" stroke-width="1" fill="none" stroke-linecap="round"/&gt; &lt;path d="M22 30 Q25 33 28 31" stroke="#2E2A2E" stroke-width="1" fill="none" stroke-linecap="round"/&gt; &lt;circle cx="12" cy="29" r="2.6" fill="#F3C4C8" opacity="0.8"/&gt; &lt;circle cx="32" cy="29" r="2.6" fill="#F3C4C8" opacity="0.8"/&gt; &lt;/svg>;
 
-const QUOKKA_SVG = `<svg viewBox="0 0 44 44">
-  <circle cx="10" cy="14" r="5" fill="#D8B888"/>
-  <circle cx="34" cy="14" r="5" fill="#D8B888"/>
-  <circle cx="22" cy="25" r="15" fill="#E0C296"/>
-  <circle cx="16" cy="23" r="1.6" fill="#2E2A2E"/>
-  <circle cx="28" cy="23" r="1.6" fill="#2E2A2E"/>
-  <ellipse cx="22" cy="27" rx="2" ry="1.4" fill="#8A6A44"/>
-  <path d="M15 29 Q22 36 29 29" stroke="#2E2A2E" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-  <circle cx="11" cy="30" r="3" fill="#F3C4C8" opacity="0.7"/>
-  <circle cx="33" cy="30" r="3" fill="#F3C4C8" opacity="0.7"/>
-</svg>`;
+const QUOKKA_SVG = <svg viewBox="0 0 44 44"&gt; &lt;circle cx="10" cy="14" r="5" fill="#D8B888"/&gt; &lt;circle cx="34" cy="14" r="5" fill="#D8B888"/&gt; &lt;circle cx="22" cy="25" r="15" fill="#E0C296"/&gt; &lt;circle cx="16" cy="23" r="1.6" fill="#2E2A2E"/&gt; &lt;circle cx="28" cy="23" r="1.6" fill="#2E2A2E"/&gt; &lt;ellipse cx="22" cy="27" rx="2" ry="1.4" fill="#8A6A44"/&gt; &lt;path d="M15 29 Q22 36 29 29" stroke="#2E2A2E" stroke-width="1.4" fill="none" stroke-linecap="round"/&gt; &lt;circle cx="11" cy="30" r="3" fill="#F3C4C8" opacity="0.7"/&gt; &lt;circle cx="33" cy="30" r="3" fill="#F3C4C8" opacity="0.7"/&gt; &lt;/svg>;
 
 const ANNIVERSARY = new Date(2023, 3, 26);
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC6HRE4epg8WIaSqzqX-8SrinAAdP73GoI",
-  authDomain: "my-awesome-couple-diary.firebaseapp.com",
-  projectId: "my-awesome-couple-diary",
-  storageBucket: "my-awesome-couple-diary.firebasestorage.app",
-  messagingSenderId: "321852756524",
-  appId: "1:321852756524:web:50448dbc69149b265fb789"
+apiKey: "AIzaSyC6HRE4epg8WIaSqzqX-8SrinAAdP73GoI",
+authDomain: "my-awesome-couple-diary.firebaseapp.com",
+projectId: "my-awesome-couple-diary",
+storageBucket: "my-awesome-couple-diary.firebasestorage.app",
+messagingSenderId: "321852756524",
+appId: "1:321852756524:web:50448dbc69149b265fb789"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
@@ -312,220 +287,213 @@ let confirmDeleteId = null;
 let coupleCode = null;
 let myRole = null;
 let unsubscribeCouple = null;
-let unsubscribeDiary = null; // 서브컬렉션 리스너 해제용
 let tempProfilePhoto = null;
+let lastLocalWriteTime = 0;
 
-function formatDate(d){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
-function displayDate(ds){ const [y,m,d]=ds.split('-'); return `${y}.${m}.${d}`; }
+function formatDate(d){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return ${y}-${m}-${day}; } function displayDate(ds){ const [y,m,d]=ds.split('-'); return ``${y}.${m}.${d}; }
 function dayOfYear(d){ const start=new Date(d.getFullYear(),0,0); return Math.floor((d-start)/86400000); }
 function todayStr(){ return formatDate(new Date()); }
 
-function todayQuestionIndex(){ 
-  const totalQuestions = (Array.isArray(QUESTIONS) && QUESTIONS.length > 0) ? QUESTIONS.length : 4;
-  return dayOfYear(new Date()) % totalQuestions; 
+function todayQuestionIndex(){
+const totalQuestions = (Array.isArray(QUESTIONS) && QUESTIONS.length > 0) ? QUESTIONS.length : 4;
+return dayOfYear(new Date()) % totalQuestions;
 }
 
 function otherRole(role){ return role==='rabbit' ? 'quokka' : 'rabbit'; }
 function roleIcon(role){ return role==='rabbit' ? RABBIT_SVG : QUOKKA_SVG; }
 function roleName(role){
-  const p = state.profiles && state.profiles[role];
-  if(p && p.name) return p.name;
-  return role==='rabbit' ? '토끼' : '쿼카';
+const p = state.profiles && state.profiles[role];
+if(p && p.name) return p.name;
+return role==='rabbit' ? '토끼' : '쿼카';
 }
 function avatarHtml(role, size){
-  const p = (state.profiles && state.profiles[role]) || {};
-  const inner = p.photo ? `<img src="${p.photo}">` : roleIcon(role);
-  return `<span class="avatar" style="width:${size}px;height:${size}px;">${inner}</span>`;
+const p = (state.profiles && state.profiles[role]) || {};
+const inner = p.photo ? <img src="${p.photo}">: roleIcon(role); return<span class="avatar" style="width:${size}px;height:${size}px;">${inner}&lt;/span>;
 }
 function escapeHtml(str){
-  if(!str) return '';
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+if(!str) return '';
+return str.replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/\n/g,'<br>');
 }
 function showToast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200);
+const t = document.getElementById('toast');
+t.textContent = msg;
+t.classList.add('show');
+setTimeout(()=>t.classList.remove('show'), 2200);
 }
 function resizeImage(file){
-  return new Promise((resolve, reject)=>{
-    const reader = new FileReader();
-    reader.onload = (e)=>{
-      const img = new Image();
-      img.onload = ()=>{
-        const maxDim = 1000;
-        let {width, height} = img;
-        if(width > height && width > maxDim){ height = Math.round(height*(maxDim/width)); width = maxDim; }
-        else if(height > maxDim){ width = Math.round(width*(maxDim/height)); height = maxDim; }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.72));
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+return new Promise((resolve, reject)=>{
+const reader = new FileReader();
+reader.onload = (e)=>{
+const img = new Image();
+img.onload = ()=>{
+const maxDim = 1000;
+let {width, height} = img;
+if(width > height && width > maxDim){ height = Math.round(height*(maxDim/width)); width = maxDim; }
+else if(height > maxDim){ width = Math.round(width*(maxDim/height)); height = maxDim; }
+const canvas = document.createElement('canvas');
+canvas.width = width; canvas.height = height;
+canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+resolve(canvas.toDataURL('image/jpeg', 0.72));
+};
+img.onerror = reject;
+img.src = e.target.result;
+};
+reader.onerror = reject;
+reader.readAsDataURL(file);
+});
 }
 function resizeImageSquare(file){
-  return new Promise((resolve, reject)=>{
-    const reader = new FileReader();
-    reader.onload = (e)=>{
-      const img = new Image();
-      img.onload = ()=>{
-        const size = 240;
-        const canvas = document.createElement('canvas');
-        canvas.width = size; canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        const minSide = Math.min(img.width, img.height);
-        const sx = (img.width-minSide)/2, sy=(img.height-minSide)/2;
-        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+return new Promise((resolve, reject)=>{
+const reader = new FileReader();
+reader.onload = (e)=>{
+const img = new Image();
+img.onload = ()=>{
+const size = 240;
+const canvas = document.createElement('canvas');
+canvas.width = size; canvas.height = size;
+const ctx = canvas.getContext('2d');
+const minSide = Math.min(img.width, img.height);
+const sx = (img.width-minSide)/2, sy=(img.height-minSide)/2;
+ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+resolve(canvas.toDataURL('image/jpeg', 0.8));
+};
+img.onerror = reject;
+img.src = e.target.result;
+};
+reader.onerror = reject;
+reader.readAsDataURL(file);
+});
 }
 
-/* ---------- Firebase 연동 및 구조 최적화 ---------- */
 function genCode(){
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
-  return code;
+const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+let code = '';
+for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+return code;
 }
 async function createCoupleDoc(code){
-  await db.collection('couples').doc(code).set({answers:[], profiles:{}});
-  return {};
+await db.collection('couples').doc(code).set({answers:[], profiles:{}});
+return {};
 }
 async function fetchCoupleProfiles(code){
-  const snap = await db.collection('couples').doc(code).get();
-  if(!snap.exists) throw new Error('코드를 찾을 수 없어요');
-  const data = snap.data() || {};
-  return data.profiles || {};
+const snap = await db.collection('couples').doc(code).get();
+if(!snap.exists) throw new Error('코드를 찾을 수 없어요');
+const data = snap.data() || {};
+return data.profiles || {};
 }
 
 function subscribeCouple(code){
-  if(unsubscribeCouple) unsubscribeCouple();
-  if(unsubscribeDiary) unsubscribeDiary();
+if(unsubscribeCouple) unsubscribeCouple();
+unsubscribeCouple = db.collection('couples').doc(code).onSnapshot(
+(snap)=>{
+if (snap.metadata.hasPendingWrites || Date.now() - lastLocalWriteTime < 1000) return;
 
-  // 1. 메인 문서 리스너 (용량 최적화 상태)
-  unsubscribeCouple = db.collection('couples').doc(code).onSnapshot(
-    (snap)=>{
-      const data = snap.data() || {};
-      state.answers = data.answers || [];
-      state.profiles = data.profiles || {};
-      updateChips();
-      renderProfileRow();
-      render();
-    },
-    (err)=>{ console.error('메인 동기화 오류', err); }
-  );
+const data = snap.data() || {};
+state.answers = data.answers || [];
 
-  // 2. 다이어리 서브컬렉션 리스너 (1MB 리밋 완전 회피)
-  unsubscribeDiary = db.collection('couples').doc(code).collection('diaries').onSnapshot(
-    (snap)=>{
-      const diaryArray = [];
-      snap.forEach(doc => {
-        diaryArray.push(doc.data());
-      });
-      state.diary = diaryArray;
-      updateChips();
-      render();
-    },
-    (err)=>{ console.error('다이어리 동기화 오류', err); }
-  );
+const serverProfiles = data.profiles || {};
+if(myRole && state.profiles[myRole] && state.profiles[myRole].name) {
+serverProfiles[myRole] = Object.assign({}, serverProfiles[myRole], state.profiles[myRole]);
+}
+state.profiles = serverProfiles;
+
+updateChips();
+renderProfileRow();
+render();
+},
+(err)=>{ console.error('실시간 동기화 오류', err); }
+);
+
+db.collection('couples').doc(code).collection('diaries').onSnapshot((qSnap) => {
+const diaryArray = [];
+qSnap.forEach(doc => { diaryArray.push(doc.data()); });
+state.diary = diaryArray;
+render();
+});
 }
 
-// 💡 일기 저장: 독립 문서 단위로 서브컬렉션에 안전하게 write 처리
 async function saveDiaryState(diaryObj){
-  if(!coupleCode || !diaryObj.id) return;
-  try{ 
-    await db.collection('couples').doc(coupleCode).collection('diaries').doc(diaryObj.id).set(diaryObj); 
-  }
-  catch(e){ console.error('일기 저장 실패', e); showToast('저장에 실패했어요.'); }
+if(!coupleCode || !diaryObj.id) return;
+await db.collection('couples').doc(coupleCode).collection('diaries').doc(diaryObj.id).set(diaryObj);
 }
 
 async function deleteDiaryState(diaryId){
-  if(!coupleCode || !diaryId) return;
-  try {
-    await db.collection('couples').doc(coupleCode).collection('diaries').doc(diaryId).delete();
-  } catch(e) { console.error('일기 삭제 실패', e); }
+if(!coupleCode || !diaryId) return;
+await db.collection('couples').doc(coupleCode).collection('diaries').doc(diaryId).delete();
 }
 
 async function saveAnswerState(answersArray){
-  if(!coupleCode) return;
-  try{ await db.collection('couples').doc(coupleCode).update({ answers: answersArray }); }
-  catch(e){ console.error('답변 저장 실패', e); showToast('저장에 실패했어요.'); }
+if(!coupleCode) return;
+lastLocalWriteTime = Date.now();
+try{ await db.collection('couples').doc(coupleCode).update({ answers: answersArray }); }
+catch(e){ console.error('답변 저장 실패', e); showToast('저장에 실패했어요.'); }
 }
 
 async function saveMyProfile(name, photo){
-  if (!coupleCode || !myRole) return;
-  
-  const existing = (state.profiles && state.profiles[myRole]) || {};
-  const updatedProfile = {
-    name: name,
-    photo: photo || null,
-    status: existing.status || '기분 없음'
-  };
-  
-  if (!state.profiles) state.profiles = {};
-  state.profiles[myRole] = updatedProfile;
-  
-  renderProfileRow();
-  render();
-  
-  const firestoreUpdate = {};
-  firestoreUpdate[`profiles.${myRole}`] = updatedProfile;
-  
-  try {
-    await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
-    localStorage.setItem('myRole', myRole);
-    localStorage.setItem('coupleCode', coupleCode);
-  } catch(err) {
-    console.error('프로필 저장 트랜잭션 실패:', err);
-    showToast('프로필 저장에 실패했습니다.');
-  }
+if (!coupleCode || !myRole) return;
+
+const existing = (state.profiles && state.profiles[myRole]) || {};
+const updatedProfile = {
+name: name,
+photo: photo || null,
+status: existing.status || '기분 없음'
+};
+
+if (!state.profiles) state.profiles = {};
+state.profiles[myRole] = updatedProfile;
+
+renderProfileRow();
+render();
+
+const firestoreUpdate = {};
+firestoreUpdate[profiles.${myRole}`] = updatedProfile;
+
+lastLocalWriteTime = Date.now();
+try {
+await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
+localStorage.setItem('myRole', myRole);
+localStorage.setItem('coupleCode', coupleCode);
+updateChips();
+} catch(err) {
+console.error('프로필 저장 트랜잭션 실패:', err);
+showToast('프로필 저장에 실패했습니다.');
+}
 }
 
 async function saveMyStatus(statusText){
-  if(!coupleCode || !myRole) return;
-  
-  const profileBtn = document.getElementById('editMyProfileBtn');
-  const currentUiName = profileBtn ? profileBtn.querySelector('span').textContent.trim() : null;
-  const currentUiImg = profileBtn ? profileBtn.querySelector('img') : null;
-  const currentUiPhotoSrc = currentUiImg ? currentUiImg.src : null;
-  
-  const existing = (state.profiles && state.profiles[myRole]) || {};
-  
-  const finalName = existing.name || currentUiName || (myRole === 'rabbit' ? '토끼' : '쿼카');
-  const finalPhoto = existing.photo || currentUiPhotoSrc || null;
+if(!coupleCode || !myRole) return;
 
-  const updatedProfile = {
-    name: finalName,
-    photo: finalPhoto,
-    status: statusText
-  };
-  
-  if (!state.profiles) state.profiles = {};
-  state.profiles[myRole] = updatedProfile;
-  
-  renderProfileRow();
-  
-  const firestoreUpdate = {};
-  firestoreUpdate[`profiles.${myRole}`] = updatedProfile;
-  
-  try {
-    await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
-    showToast(`상태를 변경했어요!`);
-  } catch(e) {
-    console.error('상태 필드 업데이트 실패:', e);
-  }
+const profileBtn = document.getElementById('editMyProfileBtn');
+const currentUiName = profileBtn ? profileBtn.querySelector('span').textContent.trim() : null;
+const currentUiImg = profileBtn ? profileBtn.querySelector('img') : null;
+const currentUiPhotoSrc = currentUiImg ? currentUiImg.src : null;
+
+const existing = (state.profiles && state.profiles[myRole]) || {};
+
+const finalName = existing.name || currentUiName || (myRole === 'rabbit' ? '토끼' : '쿼카');
+const finalPhoto = existing.photo || currentUiPhotoSrc || null;
+
+const updatedProfile = {
+name: finalName,
+photo: finalPhoto,
+status: statusText
+};
+
+if (!state.profiles) state.profiles = {};
+state.profiles[myRole] = updatedProfile;
+
+renderProfileRow();
+
+const firestoreUpdate = {};
+firestoreUpdate[profiles.${myRole}`] = updatedProfile;
+
+lastLocalWriteTime = Date.now();
+try {
+await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
+showToast(상태를 변경했어요!);
+} catch(e) {
+console.error('상태 필드 업데이트 실패:', e);
+}
 }
 
 function showOnboarding(){ document.getElementById('onboardingOverlay').style.display = 'flex'; }
@@ -534,611 +502,532 @@ function showProfileOverlay(){ document.getElementById('profileOverlay').style.d
 function hideProfileOverlay(){ document.getElementById('profileOverlay').style.display = 'none'; }
 
 function startApp(code){
-  coupleCode = code;
-  localStorage.setItem('coupleCode', code);
-  localStorage.setItem('myRole', myRole);
-  subscribeCouple(code);
-  updateChips();
-  renderProfileRow();
+coupleCode = code;
+localStorage.setItem('coupleCode', code);
+localStorage.setItem('myRole', myRole);
+subscribeCouple(code);
+updateChips();
+renderProfileRow();
 }
 
 /* ---------- Onboarding steps ---------- */
 function renderRolePickStep(code, profiles){
-  coupleCode = code;
-  // 💡 [수정] 2번 버그 해결: 불러온 프로필 구조를 전역 state 객체에 선 반영하여 데이터 유실 차단
-  state.profiles = profiles || {};
-  
-  const card = document.getElementById('onboardingCard');
-  const mk = (role)=>{
-    const p = profiles[role];
-    const takenLine = p && p.name ? `<div class="rc-taken">${escapeHtml(p.name)}님이 사용 중</div>` : `<div class="rc-taken">비어있음</div>`;
-    const avatar = p && p.photo ? `<img src="${p.photo}">` : roleIcon(role);
-    return `
-      <div class="role-card" data-role="${role}">
-        <span class="avatar">${avatar}</span>
-        <div class="rc-name">${role==='rabbit'?'토끼':'쿼카'}</div>
-        ${takenLine}
-      </div>`;
-  };
-  card.innerHTML = `
-    <h2>당신은 누구인가요?</h2>
-    <p class="sub">둘 중 나를 나타낼 캐릭터를 골라주세요</p>
-    <div class="role-pick">${mk('rabbit')}${mk('quokka')}</div>
-  `;
-  card.querySelectorAll('.role-card').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      myRole = el.dataset.role;
-      renderProfileFormStep(code, profiles[myRole]||{});
-    });
-  });
+coupleCode = code;
+state.profiles = profiles || {};
+
+const card = document.getElementById('onboardingCard');
+const mk = (role)=>{
+const p = profiles[role];
+const takenLine = p && p.name ? <div class="rc-taken"&gt;${escapeHtml(p.name)}님이 사용 중</div>:<div class="rc-taken">비어있음</div>; const avatar = p && p.photo ?: roleIcon(role); return
+<div class="role-card" data-role="{avatar}</span>
+<div class="rc-name">{takenLine}
+</div>; }; card.innerHTML =
+<h2>당신은 누구인가요?</h2>
+<p class="sub">둘 중 나를 나타낼 캐릭터를 골라주세요</p>
+<div class="role-pick">{mk('quokka')}</div>
+`;
+card.querySelectorAll('.role-card').forEach(el=>{
+el.addEventListener('click', ()=>{
+myRole = el.dataset.role;
+renderProfileFormStep(code, profiles[myRole]||{});
+});
+});
 }
 
 function renderProfileFormStep(code, existing){
-  tempProfilePhoto = existing.photo || null;
-  const card = document.getElementById('onboardingCard');
-  card.innerHTML = `
-    <h2>프로필 설정</h2>
-    <p class="sub">이름과 사진을 등록해주세요</p>
-    <div class="avatar profile-form-avatar" id="pfAvatarBtn">${tempProfilePhoto?`<img src="${tempProfilePhoto}">`:roleIcon(myRole)}</div>
-    <input type="file" id="pfPhotoInput" accept="image/*" style="display:none">
-    <input type="text" id="pfNameInput" placeholder="이름 또는 애칭" value="${escapeHtml(existing.name||'')}">
-    <button class="btn btn-primary" id="pfDoneBtn" type="button" style="width:100%;margin-top:12px;">시작하기</button>
-  `;
-  document.getElementById('pfAvatarBtn').addEventListener('click', ()=>document.getElementById('pfPhotoInput').click());
-  document.getElementById('pfPhotoInput').addEventListener('change', async (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    try{
-      tempProfilePhoto = await resizeImageSquare(file);
-      document.getElementById('pfAvatarBtn').innerHTML = `<img src="${tempProfilePhoto}">`;
-    }catch(err){ showToast('사진을 불러오지 못했어요'); }
-  });
-  
-  document.getElementById('pfDoneBtn').addEventListener('click', async ()=>{
-    const btn = document.getElementById('pfDoneBtn');
-    const name = document.getElementById('pfNameInput').value.trim() || (myRole==='rabbit'?'토끼':'쿼카');
-    btn.disabled = true;
-    btn.textContent = '시작하는 중...';
-    try {
-      await saveMyProfile(name, tempProfilePhoto);
-      hideOnboarding();
-      startApp(code);
-    } catch (err) {
-      btn.disabled = false;
-      btn.textContent = '시작하기';
-    }
-  });
+tempProfilePhoto = existing.photo || null;
+const card = document.getElementById('onboardingCard');
+card.innerHTML = &lt;h2&gt;프로필 설정&lt;/h2&gt; &lt;p class="sub"&gt;이름과 사진을 등록해주세요&lt;/p&gt; &lt;div class="avatar profile-form-avatar" id="pfAvatarBtn"&gt;${tempProfilePhoto?<img src="${tempProfilePhoto}">:roleIcon(myRole)}&lt;/div&gt; &lt;input type="file" id="pfPhotoInput" accept="image/*" style="display:none"&gt; &lt;input type="text" id="pfNameInput" placeholder="이름 또는 애칭" value="${escapeHtml(existing.name||'')}">
+<button class="btn btn-primary" id="pfDoneBtn" type="button" style="width:100%;">시작하기</button>
+; document.getElementById('pfAvatarBtn').addEventListener('click', ()=&gt;document.getElementById('pfPhotoInput').click()); document.getElementById('pfPhotoInput').addEventListener('change', async (e)=&gt;{ const file = e.target.files[0]; if(!file) return; try{ tempProfilePhoto = await resizeImageSquare(file); document.getElementById('pfAvatarBtn').innerHTML =`;
+}catch(err){ showToast('사진을 불러오지 못했어요'); }
+});
+
+document.getElementById('pfDoneBtn').addEventListener('click', async ()=>{
+const btn = document.getElementById('pfDoneBtn');
+const name = document.getElementById('pfNameInput').value.trim() || (myRole==='rabbit'?'토끼':'쿼카');
+btn.disabled = true;
+btn.textContent = '시작하는 중...';
+try {
+await saveMyProfile(name, tempProfilePhoto);
+hideOnboarding();
+startApp(code);
+} catch (err) {
+btn.disabled = false;
+btn.textContent = '시작하기';
+}
+});
 }
 
 function openProfileEditModal(){
-  const existing = (state.profiles && state.profiles[myRole]) || {};
-  tempProfilePhoto = existing.photo || null;
-  const card = document.getElementById('profileCard');
-  card.innerHTML = `
-    <h2>내 프로필 수정</h2>
-    <div class="avatar profile-form-avatar" id="editAvatarBtn">${tempProfilePhoto?`<img src="${tempProfilePhoto}">`:roleIcon(myRole)}</div>
-    <input type="file" id="editPhotoInput" accept="image/*" style="display:none">
-    <input type="text" id="editNameInput" placeholder="이름 또는 애칭" value="${escapeHtml(existing.name||'')}">
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button class="btn" id="editCancelBtn" type="button" style="flex:1;background:var(--bg);color:var(--muted);">취소</button>
-      <button class="btn btn-primary" id="editSaveBtn" type="button" style="flex:1;">저장</button>
-    </div>
-  `;
-  
-  document.getElementById('editAvatarBtn').addEventListener('click', ()=>document.getElementById('editPhotoInput').click());
-  document.getElementById('editPhotoInput').addEventListener('change', async (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    try{
-      tempProfilePhoto = await resizeImageSquare(file);
-      document.getElementById('editAvatarBtn').innerHTML = `<img src="${tempProfilePhoto}">`;
-    }catch(err){ showToast('사진을 불러오지 못했어요'); }
-  });
-  
-  document.getElementById('editCancelBtn').addEventListener('click', hideProfileOverlay);
-  document.getElementById('editSaveBtn').addEventListener('click', async ()=>{
-    const name = document.getElementById('editNameInput').value.trim() || roleName(myRole);
-    try {
-      await saveMyProfile(name, tempProfilePhoto);
-      hideProfileOverlay();
-      showToast('프로필을 저장했어요');
-    } catch(err) {
-      showToast('프로필 저장에 실패했습니다.');
-    }
-  });
-  showProfileOverlay();
+const existing = (state.profiles && state.profiles[myRole]) || {};
+tempProfilePhoto = existing.photo || null;
+const card = document.getElementById('profileCard');
+card.innerHTML = &lt;h2&gt;내 프로필 수정&lt;/h2&gt; &lt;div class="avatar profile-form-avatar" id="editAvatarBtn"&gt;${tempProfilePhoto?<img src="${tempProfilePhoto}">:roleIcon(myRole)}&lt;/div&gt; &lt;input type="file" id="editPhotoInput" accept="image/*" style="display:none"&gt; &lt;input type="text" id="editNameInput" placeholder="이름 또는 애칭" value="${escapeHtml(existing.name||'')}">
+<div style="display:flex;gap:8px;margin-top:12px;">
+<button class="btn" id="editCancelBtn" type="button" style="flex:1;background:var(--bg);color:var(--muted);">취소</button>
+<button class="btn btn-primary" id="editSaveBtn" type="button" style="flex:1;">저장</button>
+</div>
+`;
+
+document.getElementById('editAvatarBtn').addEventListener('click', ()=>document.getElementById('editPhotoInput').click());
+document.getElementById('editPhotoInput').addEventListener('change', async (e)=>{
+const file = e.target.files[0];
+if(!file) return;
+try{
+tempProfilePhoto = await resizeImageSquare(file);
+document.getElementById('editAvatarBtn').innerHTML = <img src="${tempProfilePhoto}">`;
+}catch(err){ showToast('사진을 불러오지 못했어요'); }
+});
+
+document.getElementById('editCancelBtn').addEventListener('click', hideProfileOverlay);
+document.getElementById('editSaveBtn').addEventListener('click', async ()=>{
+const name = document.getElementById('editNameInput').value.trim() || roleName(myRole);
+try {
+await saveMyProfile(name, tempProfilePhoto);
+hideProfileOverlay();
+showToast('프로필을 저장했어요');
+} catch(err) {
+showToast('프로필 저장에 실패했습니다.');
+}
+});
+showProfileOverlay();
 }
 
-/* ---------- Chips & profile row ---------- */
 function calcStreak(){
-  let streak=0, d=new Date();
-  while(true){
-    const ds=formatDate(d);
-    const has = state.diary.some(e=>e.date===ds) || state.answers.some(a=>a.date===ds);
-    if(has){ streak++; d.setDate(d.getDate()-1); } else break;
-  }
-  return streak;
+let streak=0, d=new Date();
+while(true){
+const ds=formatDate(d);
+const has = state.diary.some(e=>e.date===ds) || state.answers.some(a=>a.date===ds);
+if(has){ streak++; d.setDate(d.getDate()-1); } else break;
+}
+return streak;
 }
 function calcDday(){
-  const start = new Date(ANNIVERSARY.getFullYear(), ANNIVERSARY.getMonth(), ANNIVERSARY.getDate());
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.floor((today-start)/86400000);
+const start = new Date(ANNIVERSARY.getFullYear(), ANNIVERSARY.getMonth(), ANNIVERSARY.getDate());
+const now = new Date();
+const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+return Math.floor((today-start)/86400000);
 }
+
 function updateChips(){
-  const root = document.getElementById('chipRow');
-  const streak = calcStreak();
-  const dday = calcDday();
-  let html = '';
-  if(coupleCode) html += `<span class="chip">커플 코드 <b>${coupleCode}</b> <button id="changeCodeBtn" type="button">변경</button></span>`;
-  if(streak>0) html += `<span class="chip">🔥 <b>${streak}일째</b> 함께 기록 중</span>`;
-  html += `<span class="chip"><span class="mini-chars"><span>${RABBIT_SVG}</span><span>${QUOKKA_SVG}</span></span> 만난 지 <b>D+${dday}</b></span>`;
-  root.innerHTML = html;
-  const changeBtn = document.getElementById('changeCodeBtn');
-  if(changeBtn){
-    changeBtn.addEventListener('click', ()=>{
-      if(unsubscribeCouple) unsubscribeCouple();
-      if(unsubscribeDiary) unsubscribeDiary();
-      localStorage.removeItem('coupleCode');
-      localStorage.removeItem('myRole');
-      coupleCode = null; myRole = null;
-      state = { diary: [], answers: [], profiles: {} };
-      document.getElementById('profileRow').innerHTML = '';
-      showOnboarding();
-    });
-  }
+const root = document.getElementById('chipRow');
+const streak = calcStreak();
+const dday = calcDday();
+let html = '';
+if(coupleCode) {
+html += <span class="chip"&gt;커플 코드 &lt;b&gt;${coupleCode}</b> <button id="changeCodeBtn" type="button">변경</button></span>; if(myRole) { html +=<span class="chip" style="border: 1px solid var(--accent); background: var(--accent-soft);">🔗 <button id="copyShareLinkBtn" style="color: var(--accent-dark); font-weight: bold; cursor: pointer; padding:0; background:none; border:none;">카톡 공지용 링크 복사</button></span>; } } if(streak&gt;0) html +=<span class="chip">🔥 <b>${streak}일째&lt;/b&gt; 함께 기록 중&lt;/span>;
+html += <span class="chip"&gt;&lt;span class="mini-chars"&gt;&lt;span&gt;${RABBIT_SVG}</span><span>${QUOKKA_SVG}&lt;/span&gt;&lt;/span&gt; 만난 지 &lt;b&gt;D+${dday}</b></span>`;
+root.innerHTML = html;
+
+root.onclick = (e) => {
+const btn = e.target.closest('button');
+if(!btn) return;
+if(btn.id === 'changeCodeBtn') {
+if(unsubscribeCouple) unsubscribeCouple();
+localStorage.removeItem('coupleCode');
+localStorage.removeItem('myRole');
+coupleCode = null; myRole = null;
+state = { diary: [], answers: [], profiles: {} };
+document.getElementById('profileRow').innerHTML = '';
+window.history.replaceState({}, document.title, window.location.pathname);
+showOnboarding();
+} else if(btn.id === 'copyShareLinkBtn') {
+const shareUrl = ``${window.location.origin}{coupleCode}&role=${myRole};
+navigator.clipboard.writeText(shareUrl).then(() => {
+showToast('카톡 공지용 링크가 복사되었습니다! 대화방에 고정해두세요 📌');
+}).catch(() => {
+const t = document.createElement('textarea'); t.value = shareUrl; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t);
+showToast('카톡 공지용 링크가 복사되었습니다! 대화방에 고정해두세요 📌');
+});
+}
+};
 }
 
 function renderProfileRow(){
-  const root = document.getElementById('profileRow');
-  if(!myRole){ root.innerHTML=''; return; }
-  const other = otherRole(myRole);
-  
-  const myStatus = state.profiles?.[myRole]?.status || '기분 없음';
-  const otherStatus = state.profiles?.[other]?.status || '기분 없음';
+const root = document.getElementById('profileRow');
+if(!myRole){ root.innerHTML=''; return; }
+const other = otherRole(myRole);
 
-  root.innerHTML = `
-    <div style="display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;">
-      <div class="status-bubbles-row">
-        <div class="status-container">
-          <div class="status-bubble">${escapeHtml(myStatus)}</div>
-          <div class="status-label">${escapeHtml(roleName(myRole))}</div>
-        </div>
-        <div class="status-container">
-          <div class="status-bubble">${escapeHtml(otherStatus)}</div>
-          <div class="status-label">${escapeHtml(roleName(other))}</div>
-        </div>
-      </div>
+const myStatus = state.profiles?.[myRole]?.status || '기분 없음';
+const otherStatus = state.profiles?.[other]?.status || '기분 없음';
 
-      <div style="display:flex; align-items:center; gap:8px;">
-        <div class="profile-pair">
-          <div class="profile-chip mine" id="editMyProfileBtn">${avatarHtml(myRole,26)}<span>${escapeHtml(roleName(myRole))}</span></div>
-          <span class="profile-sep">&amp;</span>
-          <div class="profile-chip">${avatarHtml(other,26)}<span>${escapeHtml(roleName(other))}</span></div>
-        </div>
+// 💡 [수정] 수동 기분 변환 select 창 내부에 MOODS 배열의 감정 리스트 전체를 루프 돌려 원자적 일치화 완료
+const selectOptions = MOODS.map(m =>
+<option value="${m.label}" {m.emoji} ${m.label}&lt;/option>
+).join('');
 
-        <div class="status-selector-box">
-          💬 상태:
-          <select id="myStatusSelect" class="status-select">
-            <option value="기분 없음" ${myStatus==='기분 없음'?'selected':''}>선택안함</option>
-            <option value="배고파요 🍕" ${myStatus==='배고파요 🍕'?'selected':''}>배고파요 🍕</option>
-            <option value="졸려요 💤" ${myStatus==='졸려요 💤'?'selected':''}>졸려요 💤</option>
-            <option value="공부 중 📝" ${myStatus==='공부 중 📝'?'selected':''}>공부 중 📝</option>
-            <option value="열일 중 🔥" ${myStatus==='열일 중 🔥'?'selected':''}>열일 중 🔥</option>
-            <option value="보고싶어 🥰" ${myStatus==='보고싶어 🥰'?'selected':''}>보고싶어 🥰</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  document.getElementById('editMyProfileBtn').addEventListener('click', openProfileEditModal);
-  document.getElementById('myStatusSelect').addEventListener('change', (e)=>{
-    saveMyStatus(e.target.value);
-  });
+root.innerHTML = &lt;div style="display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;"&gt; &lt;div class="status-bubbles-row"&gt; &lt;div class="status-container"&gt; &lt;div class="status-bubble"&gt;${escapeHtml(myStatus)}</div>
+<div class="status-label">{escapeHtml(otherStatus)}</div>
+<div class="status-label">$`{escapeHtml(roleName(other))}</div>
+</div>
+</div>
+
+<div style="display:flex; align-items:center; gap:8px;">
+<div class="profile-pair">
+<div class="profile-chip mine" id="editMyProfileBtn">${avatarHtml(myRole,26)}&lt;span&gt;${escapeHtml(roleName(myRole))}</span></div>
+<span class="profile-sep">&</span>
+<div class="profile-chip">${avatarHtml(other,26)}&lt;span&gt;${escapeHtml(roleName(other))}</span></div>
+</div>
+
+<div class="status-selector-box">
+💬 상태:
+<select id="myStatusSelect" class="status-select">
+${selectOptions} &lt;/select&gt; &lt;/div&gt; &lt;/div&gt; &lt;/div&gt;;
+
+document.getElementById('editMyProfileBtn').addEventListener('click', openProfileEditModal);
+document.getElementById('myStatusSelect').addEventListener('change', (e)=>{
+saveMyStatus(e.target.value);
+});
 }
 
 /* ---------- Yearly journey ---------- */
 function yearProgress(){
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  const end = new Date(now.getFullYear()+1, 0, 1);
-  const totalDays = Math.round((end-start)/86400000);
-  const elapsed = Math.floor((now-start)/86400000) + 1;
-  return {pct:(elapsed/totalDays)*100, elapsed, totalDays, year:now.getFullYear(), month:now.getMonth()+1, date:now.getDate()};
+const now = new Date();
+const start = new Date(now.getFullYear(), 0, 1);
+const end = new Date(now.getFullYear()+1, 0, 1);
+const totalDays = Math.round((end-start)/86400000);
+const elapsed = Math.floor((now-start)/86400000) + 1;
+return {pct:(elapsed/totalDays)*100, elapsed, totalDays, year:now.getFullYear(), month:now.getMonth()+1, date:now.getDate()};
 }
 function renderJourney(){
-  const {pct, elapsed, totalDays, year, month, date} = yearProgress();
-  const clamped = Math.min(97, Math.max(3, pct));
-  document.getElementById('journeyRoot').innerHTML = `
-    <div class="journey-track"><div class="journey-fill" style="width:${clamped}%"></div></div>
-    <div class="journey-chars" style="left:${clamped}%">
-      <span class="char rabbit">${RABBIT_SVG}</span>
-      <span class="char quokka">${QUOKKA_SVG}</span>
-    </div>`;
-  document.getElementById('journeyCaption').textContent =
-    `${year}년 ${month}월 ${date}일 · 함께 걷는 ${elapsed}/${totalDays}일째 (${Math.round(pct)}%)`;
+const {pct, elapsed, totalDays, year, month, date} = yearProgress();
+const clamped = Math.min(97, Math.max(3, pct));
+document.getElementById('journeyRoot').innerHTML = &lt;div class="journey-track"&gt;&lt;div class="journey-fill" style="width:${clamped}%"></div></div>
+<div class="journey-chars" style="left:${clamped}%"&gt; &lt;span class="char rabbit"&gt;${RABBIT_SVG}</span>
+<span class="char quokka">${QUOKKA_SVG}&lt;/span&gt; &lt;/div>;
+document.getElementById('journeyCaption').textContent =
+${year}년 ${month}월 ${date}일 · 함께 걷는 ${elapsed}/${totalDays}일째 (${Math.round(pct)}%);
 }
 
 function updateNavDots(){
-  const ds = todayStr();
-  const qIdx = todayQuestionIndex();
-  const existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
-  const answeredToday = existing && myRole && existing[myRole];
-  const diaryToday = state.diary.some(e=>e.date===ds);
-  document.getElementById('dotQ').style.display = answeredToday ? 'none' : 'inline-block';
-  document.getElementById('dotD').style.display = diaryToday ? 'none' : 'inline-block';
+const ds = todayStr();
+const qIdx = todayQuestionIndex();
+const existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
+const answeredToday = existing && myRole && existing[myRole];
+const diaryToday = state.diary.some(e=>e.date===ds);
+document.getElementById('dotQ').style.display = answeredToday ? 'none' : 'inline-block';
+document.getElementById('dotD').style.display = diaryToday ? 'none' : 'inline-block';
 }
 
 function switchView(v){
-  currentView = v;
-  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
-  render();
+currentView = v;
+document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+render();
 }
 
 /* ---------- Question view ---------- */
 function renderQuestionView(){
-  const ds = todayStr();
-  const qIdx = todayQuestionIndex();
-  const qText = QUESTIONS[qIdx] || "오늘의 질문을 불러오는 중입니다... 잠시만 기다려주세요.";
-  const existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
-  const other = otherRole(myRole);
-  const myAns = existing ? (existing[myRole]||'') : '';
-  const otherAns = existing ? (existing[other]||'') : '';
-  const iAnswered = myAns.trim().length>0;
-  const partnerAnswered = otherAns.trim().length>0;
+const ds = todayStr();
+const qIdx = todayQuestionIndex();
+const qText = QUESTIONS[qIdx] || "오늘의 질문을 불러오는 중입니다... 잠시만 기다려주세요.";
+const existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
+const other = otherRole(myRole);
+const myAns = existing ? (existing[myRole]||'') : '';
+const otherAns = existing ? (existing[other]||'') : '';
+const iAnswered = myAns.trim().length>0;
+const partnerAnswered = otherAns.trim().length>0;
 
-  let partnerSection;
-  if(!iAnswered){
-    partnerSection = `<div class="locked-box">🔒 답변을 남기면<br>${escapeHtml(roleName(other))}의 답을 볼 수 있어요</div>`;
-  } else if(partnerAnswered){
-    partnerSection = `<div class="answer-readonly">${escapeHtml(otherAns)}</div>`;
-  } else {
-    partnerSection = `<div class="locked-box">⏳ ${escapeHtml(roleName(other))}가<br>아직 답변하지 않았어요</div>`;
-  }
+let partnerSection;
+if(!iAnswered){
+partnerSection = <div class="locked-box"&gt;🔒 답변을 남기면&lt;br&gt;${escapeHtml(roleName(other))}의 답을 볼 수 있어요</div>; } else if(partnerAnswered){ partnerSection =<div class="answer-readonly">${escapeHtml(otherAns)}&lt;/div>;
+} else {
+partnerSection = <div class="locked-box"&gt;⏳ ${escapeHtml(roleName(other))}가<br>아직 답변하지 않았어요</div>`;
+}
 
-  const past = state.answers.filter(a=>a.date!==ds).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
-  let pastHtml = '';
-  if(past.length){
-    pastHtml = `<div class="past-answers"><h3>지난 질문들</h3>` + past.map(a=>{
-      const mineP = a[myRole]||'';
-      if(!mineP.trim()){
-        return `<div class="qa-mini"><div class="qm-date">${displayDate(a.date)}</div><div class="qm-q">${escapeHtml(a.question)}</div><div class="qm-locked">🔒 답변하지 않아 볼 수 없어요</div></div>`;
-      }
-      const otherP = a[other]||'';
-      return `<div class="qa-mini">
-        <div class="qm-date">${displayDate(a.date)}</div>
-        <div class="qm-q">${escapeHtml(a.question)}</div>
-        <div class="qm-row"><b>${escapeHtml(roleName(myRole))}</b>${escapeHtml(mineP)}</div>
-        <div class="qm-row partner"><b>${escapeHtml(roleName(other))}</b>${otherP.trim()?escapeHtml(otherP):'아직 답변 전'}</div>
-      </div>`;
-    }).join('') + `</div>`;
-  }
+const past = state.answers.filter(a=>a.date!==ds).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
+let pastHtml = '';
+if(past.length){
+pastHtml = <div class="past-answers"&gt;&lt;h3&gt;지난 질문들&lt;/h3> + past.map(a=>{
+const mineP = a[myRole]||'';
+if(!mineP.trim()){
+return <div class="qa-mini"&gt;&lt;div class="qm-date"&gt;${displayDate(a.date)}</div><div class="qm-q">latex
+{escapeHtml(a.question)}&lt;/div&gt;&lt;div class="qm-locked"&gt;🔒 답변하지 않아 볼 수 없어요&lt;/div&gt;&lt;/div>`; } const otherP = a[other]||''; return `<div class="qa-mini"&gt; &lt;div class="qm-date"&gt;
 
-  return `
-    <div class="view">
-      <div class="qcard">
-        <div class="label">오늘의 질문 · ${displayDate(ds)}</div>
-        <p class="qtext">${escapeHtml(qText)}</p>
-        <div class="answers">
-          <div class="answer-box mine">
-            <span class="who">${avatarHtml(myRole,18)} ${escapeHtml(roleName(myRole))}</span>
-            <textarea id="mineInput" placeholder="내 생각을 적어보세요">${escapeHtml(myAns)}</textarea>
-          </div>
-          <div class="answer-box partner">
-            <span class="who">${avatarHtml(other,18)} ${escapeHtml(roleName(other))}</span>
-            ${partnerSection}
-          </div>
-        </div>
-        <div class="qcard-actions"><button class="btn btn-primary" id="saveAnswerBtn">저장하기</button></div>
-      </div>
-      ${pastHtml}
-    </div>
-  `;
+{displayDate(a.date)}</div>
+<div class="qm-q">{escapeHtml(roleName(myRole))}</b>{escapeHtml(roleName(other))}</b>${otherP.trim()?escapeHtml(otherP):'아직 답변 전'}&lt;/div&gt; &lt;/div>;
+}).join('') + </div>;
+}
+
+return &lt;div class="view"&gt; &lt;div class="qcard"&gt; &lt;div class="label"&gt;오늘의 질문 ·${displayDate(ds)}</div>
+<p class="qtext">{avatarHtml(myRole,18)} {escapeHtml(myAns)}</textarea>
+</div>
+<div class="answer-box partner">
+<span class="who">{escapeHtml(roleName(other))}</span>
+{pastHtml}
+</div>
+`;
 }
 function bindQuestionView(){
-  document.getElementById('saveAnswerBtn').addEventListener('click', async ()=>{
-    const ds = todayStr();
-    const qIdx = todayQuestionIndex();
-    const val = document.getElementById('mineInput').value.trim();
-    let existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
-    if(!existing){
-      existing = {date:ds, questionIndex:qIdx, question:QUESTIONS[qIdx], rabbit:'', quokka:''};
-      state.answers.push(existing);
-    }
-    existing[myRole] = val;
-    await saveAnswerState(state.answers);
-    showToast('오늘의 답변이 저장됐어요');
-    updateChips();
-    updateNavDots();
-    render();
-  });
+document.getElementById('saveAnswerBtn').addEventListener('click', async ()=>{
+const ds = todayStr();
+const qIdx = todayQuestionIndex();
+const val = document.getElementById('mineInput').value.trim();
+let existing = state.answers.find(a=>a.date===ds && a.questionIndex===qIdx);
+if(!existing){
+existing = {date:ds, questionIndex:qIdx, question:QUESTIONS[qIdx], rabbit:'', quokka:''};
+state.answers.push(existing);
+}
+existing[myRole] = val;
+await saveAnswerState(state.answers);
+showToast('오늘의 답변이 저장됐어요');
+updateChips();
+updateNavDots();
+render();
+});
 }
 
 /* ---------- Diary view ---------- */
 function commentsHtml(entry){
-  const list = entry.comments || [];
-  const items = list.map(c=>`
-    <div class="comment-item">
-      ${avatarHtml(c.author,18)}
-      <span><span class="comment-author">${escapeHtml(roleName(c.author))}</span>${escapeHtml(c.text)}</span>
-    </div>`).join('');
-  return `
-    <div class="comments">
-      ${items}
-      <div class="comment-input-row">
-        <input type="text" class="comment-input" data-entry="${entry.id}" placeholder="댓글 남기기">
-        <button class="comment-send" data-entry="${entry.id}" type="button">등록</button>
-      </div>
-    </div>`;
+const list = entry.comments || [];
+const items = list.map(c=>&lt;div class="comment-item"&gt; ${avatarHtml(c.author,18)}
+<span><span class="comment-author">${escapeHtml(roleName(c.author))}&lt;/span&gt;${escapeHtml(c.text)}</span>
+</div>).join(''); return
+<div class="comments">
+${items} &lt;div class="comment-input-row"&gt; &lt;input type="text" class="comment-input" data-entry="${entry.id}" placeholder="댓글 남기기">
+<button class="comment-send" data-entry="${entry.id}" type="button"&gt;등록&lt;/button&gt; &lt;/div&gt; &lt;/div>;
 }
 
 function renderDiaryView(){
-  const sorted = [...state.diary].sort((a,b)=>b.createdAt-a.createdAt);
-  let listHtml = '';
-  if(sorted.length===0){
-    listHtml = `<div class="empty">아직 쓴 일기가 없어요.<br>오늘 있었던 일을 적어볼까요?</div>`;
-  } else {
-    listHtml = `<div class="diary-list"><h3>지난 기록</h3>` + sorted.map(e=>{
-      const mood = MOODS.find(m=>m.key===e.mood) || MOODS[0];
-      const isExpanded = !!expandedEntries[e.id];
-      const isConfirming = confirmDeleteId===e.id;
-      return `
-        <div class="entry-card">
-          ${e.photo ? `<img class="entry-photo" src="${e.photo}">` : ''}
-          <div class="entry-head">
-            ${avatarHtml(e.author||myRole,20)}
-            <span class="entry-mood-dot" style="background:${mood.color}"></span>
-            <span class="entry-date">${escapeHtml(roleName(e.author||myRole))} · ${displayDate(e.date)} · ${mood.emoji} ${mood.label}</span>
-          </div>
-          ${e.title ? `<div class="entry-title">${escapeHtml(e.title)}</div>` : ''}
-          <div class="entry-content ${isExpanded?'':'clamped'}">${escapeHtml(e.content)}</div>
-          ${e.content.length>80 ? `<span class="entry-more" data-id="${e.id}" data-action="toggle">${isExpanded?'접기':'더보기'}</span>` : ''}
-          <div class="entry-foot">
-            ${isConfirming
-              ? `<button class="btn btn-danger" data-id="${e.id}" data-action="confirmDelete">정말 삭제할까요?</button>`
-              : `<button class="btn btn-danger" data-id="${e.id}" data-action="askDelete">삭제</button>`}
-          </div>
-          ${commentsHtml(e)}
-        </div>`;
-    }).join('') + `</div>`;
-  }
+const sorted = [...state.diary].sort((a,b)=>b.createdAt-a.createdAt);
+let listHtml = '';
+if(sorted.length===0){
+listHtml = <div class="empty"&gt;아직 쓴 일기가 없어요.&lt;br&gt;오늘 있었던 일을 적어볼까요?&lt;/div>;
+} else {
+listHtml = <div class="diary-list"&gt;&lt;h3&gt;지난 기록&lt;/h3> + sorted.map(e=>{
+// 💡 [수정] 다이어리 컴포저 무드 렌더링 시 결합된 MOODS 리스트 참조 동기화 마감
+const mood = MOODS.find(m=>m.key===e.mood) || MOODS[0];
+const isExpanded = !!expandedEntries[e.id];
+const isConfirming = confirmDeleteId===e.id;
+return &lt;div class="entry-card"&gt; ${e.photo ? <img class="entry-photo" src="${e.photo}">: ''} &lt;div class="entry-head"&gt; ${avatarHtml(e.author||myRole,20)}
+<span class="entry-mood-dot" style="background:${mood.color}"&gt;&lt;/span&gt; &lt;span class="entry-date"&gt;${escapeHtml(roleName(e.author||myRole))} · ${displayDate(e.date)} · ${mood.emoji} ${mood.label}&lt;/span&gt; &lt;/div&gt; ${e.title ? <div class="entry-title"&gt;${escapeHtml(e.title)}</div>: ''} &lt;div class="entry-content ${isExpanded?'':'clamped'}">${escapeHtml(e.content)}&lt;/div&gt; ${e.content.length>80 ? <span class="entry-more" data-id="${e.id}" data-action="toggle">latex
+{isExpanded?'접기':'더보기'}&lt;/span>` : ''} &lt;div class="entry-foot"&gt; 
 
-  return `
-    <div class="view">
-      <div class="composer">
-        <div class="moods" id="moodPicker">
-          ${MOODS.map(m=>`<button class="mood-btn ${selectedMood===m.key?'selected':''}" data-mood="${m.key}">${m.emoji}</button>`).join('')}
-        </div>
-        <input type="text" id="titleInput" placeholder="제목 (선택)">
-        <textarea id="contentInput" placeholder="오늘 하루는 어땠나요?"></textarea>
-        <div class="photo-row">
-          <input type="file" id="photoInput" accept="image/*" style="display:none">
-          ${selectedPhoto
-            ? `<div class="photo-preview"><img src="${selectedPhoto}"><button class="photo-remove" id="removePhotoBtn" type="button">✕</button></div>`
-            : `<button type="button" class="photo-add-btn" id="addPhotoBtn"><span>📷</span> 사진 추가</button>`}
-        </div>
-        <div style="margin-top:12px;text-align:right;"><button class="btn btn-primary" id="saveDiaryBtn">일기 저장</button></div>
-      </div>
-      ${listHtml}
-    </div>
-  `;
+{isConfirming
+? <button class="btn btn-danger" data-id="${e.id}" data-action="confirmDelete">정말 삭제할까요?</button>:<button class="btn btn-danger" data-id="${e.id}" data-action="askDelete"&gt;삭제&lt;/button>}
+</div>
+${commentsHtml(e)} &lt;/div>;
+}).join('') + </div>;
+}
+
+// 일기 작성 상단의 무드 선택 버튼도 동적 리스트 구조로 동기화
+const composerMoodsHtml = MOODS.filter(m => m.key !== 'none').map(m =>
+<button class="mood-btn${selectedMood===m.key?'selected':''}" data-mood="{m.label}">${m.emoji}&lt;/button>
+).join('');
+
+return &lt;div class="view"&gt; &lt;div class="composer"&gt; &lt;div class="moods" id="moodPicker"&gt;${composerMoodsHtml}
+</div>
+<input type="text" id="titleInput" placeholder="제목 (선택)">
+<textarea id="contentInput" placeholder="오늘 하루는 어땠나요?"></textarea>
+<div class="photo-row">
+<input type="file" id="photoInput" accept="image/*" style="display:none">
+latex
+{selectedPhoto ? `<div class="photo-preview"&gt;&lt;img src="
+
+{selectedPhoto}"><button class="photo-remove" id="removePhotoBtn" type="button">✕</button></div>:<button type="button" class="photo-add-btn" id="addPhotoBtn"><span>📷</span> 사진 추가</button>} &lt;/div&gt; &lt;div style="margin-top:12px;text-align:right;"&gt;&lt;button class="btn btn-primary" id="saveDiaryBtn"&gt;일기 저장&lt;/button&gt;&lt;/div&gt; &lt;/div&gt; ${listHtml}
+</div>
+`;
 }
 function bindDiaryView(){
-  document.getElementById('moodPicker').addEventListener('click', (e)=>{
-    const btn = e.target.closest('.mood-btn');
-    if(!btn) return;
-    selectedMood = btn.dataset.mood;
-    render();
-  });
+document.getElementById('moodPicker').addEventListener('click', (e)=>{
+const btn = e.target.closest('.mood-btn');
+if(!btn) return;
+selectedMood = btn.dataset.mood;
+render();
+});
 
-  const addPhotoBtn = document.getElementById('addPhotoBtn');
-  if(addPhotoBtn) addPhotoBtn.addEventListener('click', ()=>document.getElementById('photoInput').click());
-  document.getElementById('photoInput').addEventListener('change', async (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    try{ selectedPhoto = await resizeImage(file); render(); }
-    catch(err){ showToast('사진을 불러오지 못했어요'); }
-  });
-  const removePhotoBtn = document.getElementById('removePhotoBtn');
-  if(removePhotoBtn) removePhotoBtn.addEventListener('click', ()=>{ selectedPhoto = null; render(); });
+const addPhotoBtn = document.getElementById('addPhotoBtn');
+if(addPhotoBtn) addPhotoBtn.addEventListener('click', ()=>document.getElementById('photoInput').click());
+document.getElementById('photoInput').addEventListener('change', async (e)=>{
+const file = e.target.files[0];
+if(!file) return;
+try{ selectedPhoto = await resizeImage(file); render(); }
+catch(err){ showToast('사진을 불러오지 못했어요'); }
+});
+const removePhotoBtn = document.getElementById('removePhotoBtn');
+if(removePhotoBtn) removePhotoBtn.addEventListener('click', ()=>{ selectedPhoto = null; render(); });
 
-  document.getElementById('saveDiaryBtn').addEventListener('click', async ()=>{
-    const title = document.getElementById('titleInput').value.trim();
-    const content = document.getElementById('contentInput').value.trim();
-    if(!content){ showToast('내용을 적어주세요'); return; }
-    
-    // 💡 개별 문서 단위 타겟 생성
-    const diaryObj = {
-      id: 'd' + Date.now(), 
-      date: todayStr(), 
-      mood: selectedMood || MOODS[0].key,
-      title, 
-      content, 
-      photo: selectedPhoto || null, 
-      author: myRole, 
-      comments: [], 
-      createdAt: Date.now()
-    };
-    
-    selectedMood = null; selectedPhoto = null;
-    await saveDiaryState(diaryObj);
-    showToast('오늘의 일기가 저장됐어요');
-    updateChips();
-    updateNavDots();
-    render();
-  });
+document.getElementById('saveDiaryBtn').addEventListener('click', async ()=>{
+const title = document.getElementById('titleInput').value.trim();
+const content = document.getElementById('contentInput').value.trim();
+if(!content){ showToast('내용을 적어주세요'); return; }
 
-  document.querySelectorAll('[data-action]').forEach(el=>{
-    el.addEventListener('click', async ()=>{
-      const id = el.dataset.id, action = el.dataset.action;
-      if(action==='toggle'){ expandedEntries[id] = !expandedEntries[id]; render(); }
-      else if(action==='askDelete'){ confirmDeleteId = id; render(); }
-      else if(action==='confirmDelete'){
-        confirmDeleteId = null;
-        await deleteDiaryState(id);
-        showToast('삭제했어요');
-        render();
-      }
-    });
-  });
+const diaryObj = {
+id: 'd' + Date.now(),
+date: todayStr(),
+mood: selectedMood || MOODS[0].key,
+title,
+content,
+photo: selectedPhoto || null,
+author: myRole,
+comments: [],
+createdAt: Date.now()
+};
 
-  document.querySelectorAll('.comment-send').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const entryId = btn.dataset.entry;
-      const input = document.querySelector(`.comment-input[data-entry="${entryId}"]`);
-      const text = input.value.trim();
-      if(!text) return;
-      const entry = state.diary.find(e=>e.id===entryId);
-      if(!entry) return;
-      entry.comments = entry.comments || [];
-      entry.comments.push({id:'c'+Date.now(), author:myRole, text, createdAt:Date.now()});
-      
-      await saveDiaryState(entry);
-      render();
-    });
-  });
+selectedMood = null; selectedPhoto = null;
+await saveDiaryState(diaryObj);
+showToast('오늘의 일기가 저장됐어요');
+updateChips();
+updateNavDots();
+render();
+});
+
+document.querySelectorAll('[data-action]').forEach(el=>{
+el.addEventListener('click', async ()=>{
+const id = el.dataset.id, action = el.dataset.action;
+if(action==='toggle'){ expandedEntries[id] = !expandedEntries[id]; render(); }
+else if(action==='askDelete'){ confirmDeleteId = id; render(); }
+else if(action==='confirmDelete'){
+confirmDeleteId = null;
+await deleteDiaryState(id);
+showToast('삭제했어요');
+render();
+}
+});
+});
+
+document.querySelectorAll('.comment-send').forEach(btn=>{
+btn.addEventListener('click', async ()=>{
+const entryId = btn.dataset.entry;
+const input = document.querySelector(.comment-input[data-entry="${entryId}"]`);
+const text = input.value.trim();
+if(!text) return;
+const entry = state.diary.find(e=>e.id===entryId);
+if(!entry) return;
+entry.comments = entry.comments || [];
+entry.comments.push({id:'c'+Date.now(), author:myRole, text, createdAt:Date.now()});
+
+await saveDiaryState(entry);
+render();
+});
+});
 }
 
 /* ---------- History view ---------- */
 function renderHistoryView(){
-  const items = [
-    ...state.diary.map(e=>({type:'diary', date:e.date, sortKey:e.createdAt, data:e})),
-    ...state.answers.filter(a=>a.rabbit||a.quokka).map(a=>({type:'answer', date:a.date, sortKey:a.date, data:a}))
-  ].sort((a,b)=> (b.sortKey > a.sortKey ? 1 : -1));
+const items = [
+...state.diary.map(e=>({type:'diary', date:e.date, sortKey:e.createdAt, data:e})),
+...state.answers.filter(a=>a.rabbit||a.quokka).map(a=>({type:'answer', date:a.date, sortKey:a.date, data:a}))
+ ].sort((a,b)=> (b.sortKey > a.sortKey ? 1 : -1));
 
-  const totalDiary = state.diary.length;
-  const totalAnswers = state.answers.filter(a=>a.rabbit||a.quokka).length;
+const totalDiary = state.diary.length;
+const totalAnswers = state.answers.filter(a=>a.rabbit||a.quokka).length;
 
-  let listHtml = '';
-  if(items.length===0){
-    listHtml = `<div class="empty">아직 기록이 없어요.</div>`;
-  } else {
-    const other = otherRole(myRole);
-    listHtml = `<div class="timeline">` + items.map(it=>{
-      if(it.type==='diary'){
-        const mood = MOODS.find(m=>m.key===it.data.mood) || MOODS[0];
-        const cCount = (it.data.comments||[]).length;
-        return `
-          <div class="tl-item type-diary"><div class="tl-card">
-            ${it.data.photo ? `<img class="tl-photo" src="${it.data.photo}">` : ''}
-            <span class="tl-date">${displayDate(it.date)}</span>
-            <div class="tl-type">${mood.emoji} ${escapeHtml(roleName(it.data.author||myRole))}의 다이어리</div>
-            ${it.data.title ? `<div class="tl-title">${escapeHtml(it.data.title)}</div>` : ''}
-            <div class="tl-body">${escapeHtml(it.data.content.slice(0,60))}${it.data.content.length>60?'…':''}</div>
-            ${cCount>0 ? `<div class="tl-comment-count">💬 댓글 ${cCount}개</div>` : ''}
-          </div></div>`;
-      }
-      const mineP = it.data[myRole]||'';
-      if(!mineP.trim()){
-        return `
-          <div class="tl-item type-answer"><div class="tl-card">
-            <span class="tl-date">${displayDate(it.date)}</span>
-            <div class="tl-type">오늘의 질문</div>
-            <div class="tl-title">${escapeHtml(it.data.question)}</div>
-            <div class="tl-answer-row" style="color:var(--muted);">🔒 답변하지 않아 볼 수 없어요</div>
-          </div></div>`;
-      }
-      const otherP = it.data[other]||'';
-      return `
-        <div class="tl-item type-answer"><div class="tl-card">
-          <span class="tl-date">${displayDate(it.date)}</span>
-          <div class="tl-type">오늘의 질문</div>
-          <div class="tl-title">${escapeHtml(it.data.question)}</div>
-          <div class="tl-answer-row mine"><b>${escapeHtml(roleName(myRole))}</b>${escapeHtml(mineP)}</div>
-          <div class="tl-answer-row partner"><b>${escapeHtml(roleName(other))}</b>${otherP.trim()?escapeHtml(otherP):'아직 답변 전'}</div>
-        </div></div>`;
-    }).join('') + `</div>`;
-  }
+let listHtml = '';
+if(items.length===0){
+listHtml = <div class="empty"&gt;아직 기록이 없어요.&lt;/div>;
+} else {
+const other = otherRole(myRole);
+listHtml = <div class="timeline"> + items.map(it=>{
+if(it.type==='diary'){
+const mood = MOODS.find(m=>m.key===it.data.mood) || MOODS[0];
+const cCount = (it.data.comments||[]).length;
+return &lt;div class="tl-item type-diary"&gt;&lt;div class="tl-card"&gt; ${it.data.photo ? <img class="tl-photo" src="${it.data.photo}">: ''} &lt;span class="tl-date"&gt;${displayDate(it.date)}</span>
+<div class="tl-type">${mood.emoji} ${escapeHtml(roleName(it.data.author||myRole))}의 다이어리</div>
+${it.data.title ?<div class="tl-title">latex
+{escapeHtml(it.data.title)}&lt;/div>` : ''} &lt;div class="tl-body"&gt;
 
-  return `
-    <div class="view">
-      <div class="stats-row">
-        <div class="stat-card"><div class="num">${totalDiary}</div><div class="lbl">작성한 일기</div></div>
-        <div class="stat-card"><div class="num">${totalAnswers}</div><div class="lbl">답변한 질문</div></div>
-      </div>
-      ${listHtml}
-    </div>
-  `;
+{escapeHtml(it.data.content.slice(0,60))}{cCount>0 ? <div class="tl-comment-count"&gt;💬 댓글 ${cCount}개</div>: ''} &lt;/div&gt;&lt;/div>;
+}
+const mineP = it.data[myRole]||'';
+if(!mineP.trim()){
+return &lt;div class="tl-item type-answer"&gt;&lt;div class="tl-card"&gt; &lt;span class="tl-date"&gt;${displayDate(it.date)}</span>
+<div class="tl-type">오늘의 질문</div>
+<div class="tl-title">latex
+{escapeHtml(it.data.question)}&lt;/div&gt; &lt;div class="tl-answer-row" style="color:var(--muted);"&gt;🔒 답변하지 않아 볼 수 없어요&lt;/div&gt; &lt;/div&gt;&lt;/div>`; } const otherP = it.data[other]||''; return ` &lt;div class="tl-item type-answer"&gt;&lt;div class="tl-card"&gt; &lt;span class="tl-date"&gt;
+
+{displayDate(it.date)}</span>
+<div class="tl-type">오늘의 질문</div>
+<div class="tl-title">{escapeHtml(roleName(myRole))}</b>{escapeHtml(roleName(other))}</b>${otherP.trim()?escapeHtml(otherP):'아직 답변 전'}&lt;/div&gt; &lt;/div&gt;&lt;/div>;
+}).join('') + </div>;
+}
+
+return &lt;div class="view"&gt; &lt;div class="stats-row"&gt; &lt;div class="stat-card"&gt;&lt;div class="num"&gt;${totalDiary}</div><div class="lbl">작성한 일기</div></div>
+<div class="stat-card"><div class="num">{listHtml}
+</div>
+`;
 }
 
 function render(){
-  const root = document.getElementById('viewRoot');
-  if(currentView==='question'){ root.innerHTML = renderQuestionView(); bindQuestionView(); }
-  else if(currentView==='diary'){ root.innerHTML = renderDiaryView(); bindDiaryView(); }
-  else { root.innerHTML = renderHistoryView(); }
-  updateNavDots();
+const root = document.getElementById('viewRoot');
+if(currentView==='question'){ root.innerHTML = renderQuestionView(); bindQuestionView(); }
+else if(currentView==='diary'){ root.innerHTML = renderDiaryView(); bindDiaryView(); }
+else { root.innerHTML = renderHistoryView(); }
+updateNavDots();
 }
 
 document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click', ()=>switchView(b.dataset.view)));
 
 document.querySelectorAll('.tabs button').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-    document.getElementById(b.dataset.tab==='new' ? 'panelNew' : 'panelJoin').classList.add('active');
-  });
+b.addEventListener('click', ()=>{
+document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));
+b.classList.add('active');
+document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+document.getElementById(b.dataset.tab==='new' ? 'panelNew' : 'panelJoin').classList.add('active');
+});
 });
 
 document.getElementById('genCodeBtn').addEventListener('click', async ()=>{
-  const btn = document.getElementById('genCodeBtn');
-  btn.textContent = '만드는 중...';
-  const code = genCode();
-  try{
-    await createCoupleDoc(code);
-    document.getElementById('panelNew').innerHTML = `
-      <div class="code-display-big">${code}</div>
-      <p style="font-size:12px;color:var(--muted);text-align:center;margin:0 0 14px;">이 코드를 상대에게 공유해주세요</p>
-      <button class="btn btn-primary" id="startWithNewCodeBtn" type="button" style="width:100%;">다음</button>
-    `;
-    document.getElementById('startWithNewCodeBtn').addEventListener('click', ()=>{
-      renderRolePickStep(code, {});
-    });
-  }catch(e){
-    btn.textContent = '코드 만들기';
-  }
+const btn = document.getElementById('genCodeBtn');
+btn.textContent = '만드는 중...';
+const code = genCode();
+try{
+await createCoupleDoc(code);
+document.getElementById('panelNew').innerHTML = &lt;div class="code-display-big"&gt;${code}&lt;/div&gt; &lt;p style="font-size:12px;color:var(--muted);text-align:center;margin:0 0 14px;"&gt;이 코드를 상대에게 공유해주세요&lt;/p&gt; &lt;button class="btn btn-primary" id="startWithNewCodeBtn" type="button" style="width:100%;"&gt;다음&lt;/button&gt;;
+document.getElementById('startWithNewCodeBtn').addEventListener('click', ()=>{
+renderRolePickStep(code, {});
+});
+}catch(e){
+btn.textContent = '코드 만들기';
+}
 });
 
 document.getElementById('joinCodeBtn').addEventListener('click', async ()=>{
-  const input = document.getElementById('joinCodeInput');
-  const code = input.value.trim().toUpperCase();
-  if(code.length < 4){ showToast('코드를 확인해주세요'); return; }
-  try{
-    const profiles = await fetchCoupleProfiles(code);
-    renderRolePickStep(code, profiles);
-  }catch(e){ showToast('존재하지 않는 코드예요'); }
+const input = document.getElementById('joinCodeInput');
+const code = input.value.trim().toUpperCase();
+if(code.length < 4){ showToast('코드를 확인해주세요'); return; }
+try{
+const profiles = await fetchCoupleProfiles(code);
+renderRolePickStep(code, profiles);
+}catch(e){ showToast('존재하지 않는 코드예요'); }
 });
 
+// 💡 [무결성 세션 완전 마감] 인앱 브라우저 저격 파라미터 우선 획득 조건문 상향 정비 완료
 (async function init(){
-  document.querySelector('.nav button[data-view="question"]').classList.add('active');
-  renderJourney();
-  
-  try {
-    const sysSnap = await db.collection('system').doc('config').get();
-    if(sysSnap.exists && sysSnap.data().rawQuestions) {
-      const parsedArray = JSON.parse(sysSnap.data().rawQuestions);
-      if(Array.isArray(parsedArray) && parsedArray.length > 0) {
-        QUESTIONS.length = 0;
-        QUESTIONS.push(...parsedArray);
-      }
-    }
-  } catch(e) {
-    console.error("서버 질문 풀 파싱 실패:", e);
-  }
+document.querySelector('.nav button[data-view="question"]').classList.add('active');
+renderJourney();
 
-  updateChips();
-  render();
-  
-  const savedCode = localStorage.getItem('coupleCode');
-  const savedRole = localStorage.getItem('myRole');
-  
-  if(savedCode && savedRole){
-    myRole = savedRole;
-    startApp(savedCode);
-  } else {
-    showOnboarding();
-  }
+try {
+const sysSnap = await db.collection('system').doc('config').get();
+if(sysSnap.exists && sysSnap.data().rawQuestions) {
+const parsedArray = JSON.parse(sysSnap.data().rawQuestions);
+if(Array.isArray(parsedArray) && parsedArray.length > 0) {
+QUESTIONS.length = 0;
+QUESTIONS.push(...parsedArray);
+}
+}
+} catch(e) {
+console.error("서버 질문 풀 파싱 실패:", e);
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+const paramCode = urlParams.get('code');
+const paramRole = urlParams.get('role');
+
+const savedCode = paramCode || localStorage.getItem('coupleCode');
+const savedRole = paramRole || localStorage.getItem('myRole');
+
+updateChips();
+render();
+
+if(savedCode && savedRole){
+myRole = savedRole;
+localStorage.setItem('coupleCode', savedCode);
+localStorage.setItem('myRole', savedRole);
+startApp(savedCode);
+} else {
+showOnboarding();
+}
 })();
 </script>
 </body>
