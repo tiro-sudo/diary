@@ -4,78 +4,55 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>둘의 하루</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  body { margin:0; background:#FAF7F3; font-family:'Noto Sans KR',sans-serif; }
+  body { margin:0; background:#FAF7F3; font-family: sans-serif; }
   .app { max-width:600px; margin:0 auto; padding:20px; }
-  .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000; }
-  .card { background:#fff; padding:30px; border-radius:20px; text-align:center; width:90%; max-width:300px; }
-  .btn { display:block; width:100%; padding:12px; margin-top:10px; background:#2E2A2E; color:#fff; border:none; border-radius:10px; cursor:pointer; }
-  input { width:100%; padding:10px; margin-top:10px; border:1px solid #ccc; border-radius:10px; }
-  #viewRoot { margin-top:20px; }
+  .nav { display: flex; gap: 10px; margin-bottom: 20px; }
+  .nav button { padding: 10px; border:none; background:#eee; cursor:pointer; }
+  .qcard { background:#fff; padding:20px; border-radius:15px; border:1px solid #ddd; }
 </style>
 </head>
 <body>
 
 <div class="app">
   <h1>둘의 하루</h1>
-  <div id="viewRoot">환영합니다. 데이터를 불러오는 중입니다...</div>
-</div>
-
-<div class="overlay" id="onboardingOverlay" style="display:none;">
-  <div class="card">
-    <h2>시작하기</h2>
-    <input type="text" id="codeInput" placeholder="커플 코드 입력">
-    <button class="btn" id="startBtn">확인</button>
+  <div class="nav">
+    <button onclick="switchView('question')">오늘의 질문</button>
   </div>
+  <div id="viewRoot"></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-app-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-firestore-compat.js"></script>
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyC6HRE4epg8WIaSqzqX-8SrinAAdP73GoI",
-  authDomain: "my-awesome-couple-diary.firebaseapp.com",
-  projectId: "my-awesome-couple-diary",
-  storageBucket: "my-awesome-couple-diary.firebasestorage.app",
-  messagingSenderId: "321852756524",
-  appId: "1:321852756524:web:50448dbc69149b265fb789"
-};
+const QUESTIONS = ["처음 만났을 때 서로에게 반했던 순간은 언제였어?", "요즘 나 때문에 웃었던 순간이 있었어?"];
+const firebaseConfig = { /* 동일 */ };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let myRole = null;
-let coupleCode = null;
+let myRole = 'rabbit'; // 테스트용
+let coupleCode = localStorage.getItem('coupleCode');
 
-function showApp(code) {
-  coupleCode = code;
-  document.getElementById('onboardingOverlay').style.display = 'none';
-  document.getElementById('viewRoot').innerHTML = "연결되었습니다! 코드는 " + code + " 입니다.";
-  localStorage.setItem('coupleCode', code);
+function switchView(view) {
+  if(view === 'question') {
+    document.getElementById('viewRoot').innerHTML = `
+      <div class="qcard">
+        <h3>오늘의 질문</h3>
+        <p>${QUESTIONS[0]}</p>
+        <textarea id="ans" placeholder="답변을 입력하세요"></textarea>
+        <button onclick="saveAnswer()">저장</button>
+      </div>
+    `;
+  }
 }
 
-document.getElementById('startBtn').onclick = async () => {
-  const code = document.getElementById('codeInput').value.trim().toUpperCase();
-  if(!code) return alert('코드를 입력하세요');
-  
-  const doc = await db.collection('couples').doc(code).get();
-  if(doc.exists) {
-    myRole = 'rabbit'; // 테스트용 고정
-    showApp(code);
-  } else {
-    alert('없는 코드입니다');
-  }
-};
+async function saveAnswer() {
+  const val = document.getElementById('ans').value;
+  // Firestore 저장 로직 (추후 추가)
+  alert('저장되었습니다: ' + val);
+}
 
-(function init() {
-  const savedCode = localStorage.getItem('coupleCode');
-  if(savedCode) {
-    myRole = 'rabbit';
-    showApp(savedCode);
-  } else {
-    document.getElementById('onboardingOverlay').style.display = 'flex';
-  }
-})();
+if(coupleCode) switchView('question');
 </script>
 </body>
 </html>
