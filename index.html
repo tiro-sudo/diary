@@ -516,7 +516,7 @@ async function saveMyProfile(name, photo){
   firestoreUpdate[`profiles.${myRole}`] = updatedProfile;
   
   try {
-    await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
+    await db.collection('couples').doc(coupleCode).update(firestoreUpdate);
     localStorage.setItem('myRole', myRole);
     localStorage.setItem('coupleCode', coupleCode);
   } catch(err) {
@@ -559,7 +559,7 @@ async function saveMyStatus(statusText){
   firestoreUpdate[`profiles.${myRole}`] = updatedProfile;
   
   try {
-    await db.collection('couples').doc(coupleCode).set(firestoreUpdate, { merge: true });
+    await db.collection('couples').doc(coupleCode).update(firestoreUpdate);
     showToast(`상태를 변경했어요!`);
   } catch(e) {
     console.error('상태 필드 업데이트 실패:', e);
