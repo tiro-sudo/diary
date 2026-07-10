@@ -253,7 +253,6 @@ textarea:focus,input:focus{outline:none;border-color:var(--accent);}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-app-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-firestore-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-storage-compat.js"></script>
 <script>
 // 💡 기본 고정 질문 초기화 (서버 연동 실패 시의 예비용)
 const QUESTIONS = [
@@ -311,23 +310,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 db.settings({ experimentalAutoDetectLongPolling: true });
-const storage = firebase.storage();
-
-/* 💡 사진: Firestore 문서(1MB 제한) 대신 Firebase Storage에 업로드하고
-   문서에는 다운로드 URL만 저장한다. */
-async function uploadPhoto(dataUrl, path){
-  const blob = await (await fetch(dataUrl)).blob();
-  const ref = storage.ref(path);
-  await ref.put(blob);
-  return await ref.getDownloadURL();
-}
-// photoValue가 새로 고른 사진(dataURL)이면 업로드해서 URL로 바꾸고,
-// 이미 저장된 URL이거나 없으면 그대로 반환한다.
-async function resolvePhotoForUpload(photoValue, path){
-  if(!photoValue) return null;
-  if(photoValue.startsWith('data:')) return await uploadPhoto(photoValue, path);
-  return photoValue;
-}
 
 let state = { diary: [], answers: [], profiles: {} };
 let currentView = 'question';
@@ -338,6 +320,7 @@ let confirmDeleteId = null;
 let coupleCode = null;
 let myRole = null;
 let unsubscribeCouple = null;
+let unsubscribeDiary = null;
 let tempProfilePhoto = null;
 
 function formatDate(d){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
@@ -426,7 +409,7 @@ function genCode(){
   return code;
 }
 async function createCoupleDoc(code){
-  await db.collection('couples').doc(code).set({diary:[], answers:[], profiles:{}});
+  await db.collection('couples').doc(code).set({answers:[], profiles:{}});
   return {};
 }
 async function fetchCoupleProfiles(code){
@@ -437,35 +420,75 @@ async function fetchCoupleProfiles(code){
 }
 function subscribeCouple(code){
   if(unsubscribeCouple) unsubscribeCouple();
-  unsubscribeCouple = db.collection('couples').doc(code).onSnapshot(
+  if(unsubscribeDiary) unsubscribeDiary();
+
+  const docRef = db.collection('couples').doc(code);
+
+  unsubscribeCouple = docRef.onSnapshot(
     (snap)=>{
       const data = snap.data() || {};
-      state.diary = data.diary || [];
       state.answers = data.answers || [];
       state.profiles = data.profiles || {};
+
+      // 💡 예전 방식(일기를 couples 문서 안 배열로 저장)으로 남아있는 데이터가 있으면
+      // 서브컬렉션으로 한 번만 옮겨준다 (사진 있는 일기가 쌓여 문서가 1MB를 넘는 걸 방지).
+      if(Array.isArray(data.diary) && data.diary.length){
+        migrateLegacyDiary(code, data.diary);
+      }
+
       updateChips();
       renderProfileRow();
       render();
     },
     (err)=>{ console.error('실시간 동기화 오류', err); showToast('동기화에 문제가 생겼어요'); }
   );
+
+  unsubscribeDiary = docRef.collection('diary').orderBy('createdAt', 'desc').onSnapshot(
+    (snap)=>{
+      state.diary = snap.docs.map(d=>d.data());
+      updateChips();
+      render();
+    },
+    (err)=>{ console.error('일기 동기화 오류', err); showToast('일기 동기화에 문제가 생겼어요'); }
+  );
 }
 
-// 💡 [수정] 전체 배열을 통째로 덮어쓰던 방식 대신, Firestore 트랜잭션으로
-// "서버의 최신 값을 읽고 → 그 위에 변경을 적용해서 → 쓰는" 과정을 원자적으로 처리한다.
-// 두 사람이 거의 동시에 저장해도 서버가 충돌을 감지해 자동 재시도하므로 데이터 유실이 없다.
-async function saveDiaryState(mutatorFn){
-  if(!coupleCode) return;
-  const docRef = db.collection('couples').doc(coupleCode);
+let legacyDiaryMigrated = false;
+async function migrateLegacyDiary(code, legacyEntries){
+  if(legacyDiaryMigrated) return;
+  legacyDiaryMigrated = true;
   try{
-    await db.runTransaction(async (tx)=>{
-      const snap = await tx.get(docRef);
-      const currentDiary = (snap.exists && snap.data().diary) || [];
-      const newDiary = mutatorFn(currentDiary);
-      tx.update(docRef, { diary: newDiary });
+    const docRef = db.collection('couples').doc(code);
+    const batch = db.batch();
+    legacyEntries.forEach(entry=>{
+      const id = entry.id || ('d'+Date.now()+Math.random().toString(36).slice(2,7));
+      batch.set(docRef.collection('diary').doc(id), {...entry, id});
     });
-  }
+    batch.update(docRef, { diary: firebase.firestore.FieldValue.delete() });
+    await batch.commit();
+  }catch(e){ console.error('기존 일기 이전 실패', e); }
+}
+
+// 💡 일기는 커플 문서 안 배열이 아니라 couples/{code}/diary 서브컬렉션의
+// 개별 문서로 저장한다. 항목마다 독립된 문서라 (1) 동시 작성 충돌이 아예 없고
+// (2) 사진이 있어도 그 항목 하나만 1MB 제한을 받아 전체 문서가 꽉 찰 위험이 없다.
+async function addDiaryEntry(entry){
+  if(!coupleCode) return;
+  try{ await db.collection('couples').doc(coupleCode).collection('diary').doc(entry.id).set(entry); }
   catch(e){ console.error('일기 저장 실패', e); showToast('저장에 실패했어요.'); throw e; }
+}
+async function deleteDiaryEntry(id){
+  if(!coupleCode) return;
+  try{ await db.collection('couples').doc(coupleCode).collection('diary').doc(id).delete(); }
+  catch(e){ console.error('일기 삭제 실패', e); showToast('삭제에 실패했어요.'); throw e; }
+}
+async function addDiaryComment(entryId, comment){
+  if(!coupleCode) return;
+  try{
+    await db.collection('couples').doc(coupleCode).collection('diary').doc(entryId)
+      .update({ comments: firebase.firestore.FieldValue.arrayUnion(comment) });
+  }
+  catch(e){ console.error('댓글 저장 실패', e); showToast('댓글 저장에 실패했어요.'); throw e; }
 }
 
 async function saveAnswerState(mutatorFn){
@@ -633,10 +656,9 @@ function renderProfileFormStep(code, existing){
     const btn = document.getElementById('pfDoneBtn');
     const name = document.getElementById('pfNameInput').value.trim() || (myRole==='rabbit'?'토끼':'쿼카');
     btn.disabled = true;
-    btn.textContent = tempProfilePhoto ? '사진 업로드 중...' : '시작하는 중...';
+    btn.textContent = '시작하는 중...';
     try {
-      const photoUrl = await resolvePhotoForUpload(tempProfilePhoto, `couples/${code}/profiles/${myRole}.jpg`);
-      await saveMyProfile(name, photoUrl);
+      await saveMyProfile(name, tempProfilePhoto);
       hideOnboarding();
       startApp(code);
     } catch (err) {
@@ -682,11 +704,10 @@ function openProfileEditModal(){
     const name = nameInput.value.trim() || roleName(myRole);
     const saveBtn = document.getElementById('editSaveBtn');
     saveBtn.disabled = true;
-    saveBtn.textContent = tempProfilePhoto ? '업로드 중...' : '저장';
+    saveBtn.textContent = '저장 중...';
 
     try {
-      const photoUrl = await resolvePhotoForUpload(tempProfilePhoto, `couples/${coupleCode}/profiles/${myRole}.jpg`);
-      await saveMyProfile(name, photoUrl);
+      await saveMyProfile(name, tempProfilePhoto);
       hideProfileOverlay();
       showToast('프로필을 저장했어요');
     } catch(err) {
@@ -729,6 +750,8 @@ function updateChips(){
   if(changeBtn){
     changeBtn.addEventListener('click', ()=>{
       if(unsubscribeCouple) unsubscribeCouple();
+      if(unsubscribeDiary) unsubscribeDiary();
+      legacyDiaryMigrated = false;
       localStorage.removeItem('coupleCode');
       localStorage.removeItem('myRole');
       coupleCode = null; myRole = null;
@@ -1016,20 +1039,17 @@ function bindDiaryView(){
     if(!content){ showToast('내용을 적어주세요'); return; }
 
     const entryId = 'd'+Date.now();
-    const localPhoto = selectedPhoto;
     const mood = selectedMood || MOODS[0].key;
 
     btn.disabled = true;
-    btn.textContent = localPhoto ? '사진 업로드 중...' : '저장 중...';
+    btn.textContent = '저장 중...';
 
     try{
-      // 💡 [수정] base64를 문서에 직접 넣지 않고 Storage에 올린 뒤 URL만 저장
-      const photoUrl = await resolvePhotoForUpload(localPhoto, `couples/${coupleCode}/diary/${entryId}.jpg`);
       const newEntry = {
         id: entryId, date: todayStr(), mood,
-        title, content, photo: photoUrl, author: myRole, comments: [], createdAt: Date.now()
+        title, content, photo: selectedPhoto||null, author: myRole, comments: [], createdAt: Date.now()
       };
-      await saveDiaryState(diary => [...diary, newEntry]);
+      await addDiaryEntry(newEntry);
 
       selectedMood = null; selectedPhoto = null;
       showToast('오늘의 일기가 저장됐어요');
@@ -1037,8 +1057,6 @@ function bindDiaryView(){
       updateNavDots();
       render();
     }catch(e){
-      console.error('일기 저장 실패', e);
-      showToast('저장에 실패했어요.');
       btn.disabled = false;
       btn.textContent = '일기 저장';
     }
@@ -1052,7 +1070,7 @@ function bindDiaryView(){
       else if(action==='confirmDelete'){
         confirmDeleteId = null;
         try{
-          await saveDiaryState(diary => diary.filter(e=>e.id!==id));
+          await deleteDiaryEntry(id);
           showToast('삭제했어요');
         }catch(e){}
         render();
@@ -1069,9 +1087,7 @@ function bindDiaryView(){
       const newComment = {id:'c'+Date.now(), author:myRole, text, createdAt:Date.now()};
 
       try{
-        await saveDiaryState(diary => diary.map(e =>
-          e.id===entryId ? { ...e, comments: [...(e.comments||[]), newComment] } : e
-        ));
+        await addDiaryComment(entryId, newComment);
       }catch(e){}
       render();
     };
