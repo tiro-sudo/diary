@@ -794,13 +794,33 @@ function renderProfileRow(){
           💬 상태:
           <select id="myStatusSelect" class="status-select">
             <option value="기분 없음" ${myStatus==='기분 없음'?'selected':''}>선택안함</option>
-            <option value="배고파요 🍕" ${myStatus==='배고파요 🍕'?'selected':''}>배고파요 🍕</option>
-            <option value="졸려요 💤" ${myStatus==='졸려요 💤'?'selected':''}>졸려요 💤</option>
-            <option value="공부 중 📝" ${myStatus==='공부 중 📝'?'selected':''}>공부 중 📝</option>
-            <option value="열일 중 🔥" ${myStatus==='열일 중 🔥'?'selected':''}>열일 중 🔥</option>
-            <option value="보고싶어 🥰" ${myStatus==='보고싶어 🥰'?'selected':''}>보고싶어 🥰</option>
+            <optgroup label="기분">
+              <option value="행복해요 😊" ${myStatus==='행복해요 😊'?'selected':''}>행복해요 😊</option>
+              <option value="설레요 🥰" ${myStatus==='설레요 🥰'?'selected':''}>설레요 🥰</option>
+              <option value="심심해요 😐" ${myStatus==='심심해요 😐'?'selected':''}>심심해요 😐</option>
+              <option value="우울해요 🌧️" ${myStatus==='우울해요 🌧️'?'selected':''}>우울해요 🌧️</option>
+              <option value="스트레스 받아요 😩" ${myStatus==='스트레스 받아요 😩'?'selected':''}>스트레스 받아요 😩</option>
+              <option value="짜증나요 😤" ${myStatus==='짜증나요 😤'?'selected':''}>짜증나요 😤</option>
+              <option value="피곤해요 🥱" ${myStatus==='피곤해요 🥱'?'selected':''}>피곤해요 🥱</option>
+              <option value="아파요 🤒" ${myStatus==='아파요 🤒'?'selected':''}>아파요 🤒</option>
+              <option value="보고싶어 🥺" ${myStatus==='보고싶어 🥺'?'selected':''}>보고싶어 🥺</option>
+              <option value="사랑해 💕" ${myStatus==='사랑해 💕'?'selected':''}>사랑해 💕</option>
+            </optgroup>
+            <optgroup label="하는 중">
+              <option value="배고파요 🍕" ${myStatus==='배고파요 🍕'?'selected':''}>배고파요 🍕</option>
+              <option value="졸려요 💤" ${myStatus==='졸려요 💤'?'selected':''}>졸려요 💤</option>
+              <option value="공부 중 📝" ${myStatus==='공부 중 📝'?'selected':''}>공부 중 📝</option>
+              <option value="열일 중 🔥" ${myStatus==='열일 중 🔥'?'selected':''}>열일 중 🔥</option>
+              <option value="회의 중 💼" ${myStatus==='회의 중 💼'?'selected':''}>회의 중 💼</option>
+              <option value="이동 중 🚗" ${myStatus==='이동 중 🚗'?'selected':''}>이동 중 🚗</option>
+              <option value="운동 중 🏃" ${myStatus==='운동 중 🏃'?'selected':''}>운동 중 🏃</option>
+              <option value="밥 먹는 중 🍚" ${myStatus==='밥 먹는 중 🍚'?'selected':''}>밥 먹는 중 🍚</option>
+              <option value="쉬는 중 🛋️" ${myStatus==='쉬는 중 🛋️'?'selected':''}>쉬는 중 🛋️</option>
+              <option value="놀고 싶어요 🎮" ${myStatus==='놀고 싶어요 🎮'?'selected':''}>놀고 싶어요 🎮</option>
+            </optgroup>
           </select>
         </div>
+
       </div>
     </div>
   `;
@@ -1220,18 +1240,30 @@ document.getElementById('joinCodeBtn').addEventListener('click', async ()=>{
   document.querySelector('.nav button[data-view="question"]').classList.add('active');
   renderJourney();
   
-  // 1. 서버로부터 300개의 질문 풀 로드
+  // 1. 서버로부터 질문 풀 로드
+  // 💡 rawQuestions 필드가 배열로 저장돼 있든, JSON 문자열로 저장돼 있든 둘 다 인식하도록 함
   try {
     const sysSnap = await db.collection('system').doc('config').get();
-    if(sysSnap.exists && sysSnap.data().rawQuestions) {
-      const parsedArray = JSON.parse(sysSnap.data().rawQuestions);
-      if(Array.isArray(parsedArray) && parsedArray.length > 0) {
+    if(!sysSnap.exists){
+      console.warn('system/config 문서를 찾을 수 없어요. 기본 질문 4개로 진행합니다.');
+    } else {
+      const raw = sysSnap.data().rawQuestions;
+      let parsedArray = null;
+      if(Array.isArray(raw)){
+        parsedArray = raw;
+      } else if(typeof raw === 'string'){
+        parsedArray = JSON.parse(raw);
+      } else {
+        console.warn('rawQuestions 필드가 없거나 배열/문자열이 아니에요:', raw);
+      }
+      if(Array.isArray(parsedArray) && parsedArray.length > 0){
         QUESTIONS.length = 0;
         QUESTIONS.push(...parsedArray);
+        console.log(`질문 풀 ${QUESTIONS.length}개 로드 완료`);
       }
     }
   } catch(e) {
-    console.error("서버 질문 풀 파싱 실패, 기본값 사용:", e);
+    console.error('서버 질문 풀 로드 실패, 기본값 사용:', e);
   }
 
   // 2. 로그인 세션 유지 및 온보딩 판별 로직 (유실되었던 정석 코드 복구)
